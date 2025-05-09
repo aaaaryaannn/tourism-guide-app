@@ -22,18 +22,12 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: './client/package-lock.json'
 
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install client dependencies
+      - name: Install and build client
         run: |
           cd client
-          npm install
-
-      - name: Build project
-        run: |
-          cd client
+          npm ci
           npm run build
 
       - name: Upload artifact
