@@ -1,8 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema";
-import { db } from './db';
-import type { IStorage } from './storage.interface';
-import { Booking, Message } from './types';
+import { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema.js";
+import { db } from './db.js';
+import type { IStorage } from './storage.interface.js';
+import { Booking, Message } from './types.js';
 
 interface ExtendedConnection extends Connection {
   fromUser?: Omit<User, 'password'>;

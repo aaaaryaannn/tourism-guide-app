@@ -1,4 +1,5 @@
-import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Booking, Connection, SavedPlace } from "../shared/schema.ts";
+import { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema.js";
+import { Booking, Message } from "./types.js";
 
 export interface IStorage {
   // User methods
@@ -7,12 +8,12 @@ export interface IStorage {
   createUser(user: Omit<User, 'id'>): Promise<User>;
   updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
   
-  // Guide Profile methods
+  // Guide methods
   getGuideProfile(userId: string): Promise<GuideProfile | undefined>;
   createGuideProfile(profile: Omit<GuideProfile, 'id'>): Promise<GuideProfile>;
   updateGuideProfile(id: string, profile: Partial<GuideProfile>): Promise<GuideProfile | undefined>;
   
-  // Place methods
+  // Places methods
   getPlace(id: string): Promise<Place | undefined>;
   getPlaces(): Promise<Place[]>;
   createPlace(place: Omit<Place, 'id'>): Promise<Place>;
@@ -30,11 +31,12 @@ export interface IStorage {
   createBooking(booking: Omit<Booking, 'id'>): Promise<Booking>;
   
   // Connection methods
-  getConnections(userId: string): Promise<Connection[]>;
+  getConnections(userId: string | number): Promise<Connection[]>;
   createConnection(connection: Omit<Connection, 'id'>): Promise<Connection>;
-  updateConnectionStatus(id: string, status: string): Promise<Connection | undefined>;
+  getConnection(connectionId: number | string): Promise<Connection | null>;
+  updateConnectionStatus(id: string | number, status: string): Promise<Connection | undefined>;
   
-  // Saved Place methods
+  // Saved places methods
   getSavedPlaces(userId: string): Promise<SavedPlace[]>;
   createSavedPlace(savedPlace: Omit<SavedPlace, 'id'>): Promise<SavedPlace>;
   deleteSavedPlace(id: string): Promise<boolean>;
@@ -43,4 +45,8 @@ export interface IStorage {
   updateUserLocation(userId: number, latitude: string, longitude: string): Promise<User>;
   getNearbyGuides(latitude: string, longitude: string, radiusKm?: number): Promise<User[]>;
   getNearbyPlaces(latitude: string, longitude: string, radiusKm?: number, category?: string): Promise<Place[]>;
+  
+  // Messages methods
+  getMessagesByConnectionId(connectionId: string): Promise<Message[]>;
+  createMessage(message: Omit<Message, 'id'>): Promise<Message>;
 } 

@@ -4,22 +4,19 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "../",
+    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": false,
-    "baseUrl": "../",
+    "baseUrl": "./",
     "paths": {
       "@/*": ["*"]
     }
   },
   "include": [
-    "../shared/**/*.ts",
-    "./**/*.ts"
+    "**/*.ts"
   ],
   "exclude": [
     "node_modules",
