@@ -1,8 +1,7 @@
 // API Configuration
 const getApiUrl = () => {
   if (import.meta.env.PROD) {
-    // Replace this with your production backend URL once deployed
-    return 'https://your-backend-url.com';
+    return 'https://tourism-guide-backend.onrender.com';
   }
   return 'http://localhost:3000';
 };
