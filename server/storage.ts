@@ -1,7 +1,14 @@
-import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema.ts";
-import { db } from './db.ts';
-import type { IStorage } from './storage.interface.ts';
-import { ObjectId } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
+import { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema";
+import { db } from './db';
+import type { IStorage } from './storage.interface';
+import { Booking, Message } from './types';
+
+interface ExtendedConnection extends Connection {
+  fromUser?: Omit<User, 'password'>;
+  toUser?: Omit<User, 'password'>;
+  guideProfile?: GuideProfile;
+}
 
 export class MongoStorage implements IStorage {
   // User methods
@@ -149,7 +156,7 @@ export class MongoStorage implements IStorage {
   }
   
   // Connection methods
-  async getConnections(userId: string | number): Promise<Connection[]> {
+  async getConnections(userId: string | number): Promise<ExtendedConnection[]> {
     console.log("[storage] Getting connections for user:", userId, "Type:", typeof userId);
     
     // Convert userId to string for consistent comparison
@@ -203,13 +210,13 @@ export class MongoStorage implements IStorage {
         console.error("[storage] Error populating user data for connection:", error);
       }
       
-      return baseConnection as Connection;
+      return baseConnection as ExtendedConnection;
     }));
     
     return populatedConnections;
   }
 
-  async createConnection(connection: Omit<Connection, 'id'>): Promise<Connection> {
+  async createConnection(connection: Omit<Connection, 'id'>): Promise<ExtendedConnection> {
     try {
       console.log("[DEBUG] About to insert connection into MongoDB:", connection);
       
@@ -238,7 +245,7 @@ export class MongoStorage implements IStorage {
       const insertedConnection = { 
         ...normalizedConnection, 
         id: result.insertedId.toString() 
-      } as Connection;
+      } as ExtendedConnection;
       
       console.log("[DEBUG] Connection successfully created:", insertedConnection);
       return insertedConnection;
@@ -249,7 +256,7 @@ export class MongoStorage implements IStorage {
   }
 
   // Get a connection by ID
-  async getConnection(connectionId: number | string): Promise<Connection | null> {
+  async getConnection(connectionId: number | string): Promise<ExtendedConnection | null> {
     try {
       console.log("[storage] Getting connection with ID:", connectionId, "Type:", typeof connectionId);
       
@@ -270,7 +277,7 @@ export class MongoStorage implements IStorage {
       const { _id, ...rest } = connection;
       
       // Convert MongoDB document to Connection type
-      const connectionData: Connection = { 
+      const connectionData: ExtendedConnection = { 
         ...rest,
         id: _id.toString(),
         fromUserId: rest.fromUserId.toString(),
@@ -301,14 +308,14 @@ export class MongoStorage implements IStorage {
         // Continue even if we can't get user details
       }
       
-      return connectionWithUsers as Connection;
+      return connectionWithUsers as ExtendedConnection;
     } catch (error) {
       console.error("[storage] Error getting connection:", error);
       return null;
     }
   }
   
-  async updateConnectionStatus(id: string | number, status: string): Promise<Connection | undefined> {
+  async updateConnectionStatus(id: string | number, status: string): Promise<ExtendedConnection | undefined> {
     try {
       console.log("[storage] Updating connection status:", { id, status, idType: typeof id });
       
@@ -409,7 +416,7 @@ export class MongoStorage implements IStorage {
         id: _id.toString(),
         fromUserId: rest.fromUserId?.toString() || "",
         toUserId: rest.toUserId?.toString() || ""
-      } as Connection;
+      } as ExtendedConnection;
     } catch (error) {
       console.error("[storage] Error updating connection status:", error);
       return undefined;
