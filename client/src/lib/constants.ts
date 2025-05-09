@@ -1,3 +1,14 @@
+// API Configuration
+const getApiUrl = () => {
+  if (import.meta.env.PROD) {
+    // Replace this with your production backend URL once deployed
+    return 'https://your-backend-url.com';
+  }
+  return 'http://localhost:3000';
+};
+
+export const API_URL = getApiUrl();
+
 export const MAHARASHTRA_CITIES = [
   "Mumbai",
   "Pune",
