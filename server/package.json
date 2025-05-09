@@ -1,0 +1,14 @@
+{
+  "name": "tourism-guide-backend",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "build": "tsc",
+    "dev": "nodemon index.ts"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  // ... existing dependencies and other configurations ...
+} 
