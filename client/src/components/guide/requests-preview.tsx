@@ -1,21 +1,110 @@
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+
+// Define the connection interface
+interface Connection {
+  id: string | number;
+  fromUserId: string | number;
+  toUserId: string | number;
+  status: string;
+  message: string;
+  createdAt: string;
+  tourist?: {
+    fullName?: string;
+  };
+}
 
 const RequestsPreview: React.FC = () => {
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Get current user from window.auth (set in App.tsx)
+  const auth = (window as any).auth;
+  const user = auth?.user;
   
   // Query for pending connection requests
-  const { data: pendingRequests, isLoading } = useQuery({
+  const { data: pendingRequests = [], isLoading } = useQuery<Connection[]>({
     queryKey: ['/api/guide/connections', { status: 'pending' }],
   });
   
   // Only show up to 2 requests in the preview
-  const displayRequests = pendingRequests?.slice(0, 2) || [];
-  const totalRequests = pendingRequests?.length || 0;
+  const displayRequests = pendingRequests.slice(0, 2);
+  const totalRequests = pendingRequests.length;
+  
+  // Handle updating connection status (accept/decline)
+  const updateConnectionStatus = useMutation({
+    mutationFn: async ({ connectionId, status }: { connectionId: number | string; status: string }) => {
+      // Include user ID in the request body
+      const response = await apiRequest("PATCH", `/api/connections/${connectionId}`, { 
+        status,
+        userId: user?.id // Pass current user ID with the request
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Connection updated",
+        description: "The connection status has been updated",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/guide/connections'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update connection status",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle accepting a connection request
+  const handleAccept = async (connectionId: number | string) => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to accept requests",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await updateConnectionStatus.mutateAsync({ 
+        connectionId, 
+        status: 'accepted' 
+      });
+    } catch (error) {
+      console.error("Error accepting request:", error);
+    }
+  };
+  
+  // Handle rejecting a connection request
+  const handleReject = async (connectionId: number | string) => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to reject requests",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await updateConnectionStatus.mutateAsync({ 
+        connectionId, 
+        status: 'rejected' 
+      });
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+    }
+  };
   
   return (
     <div className="mb-4">
@@ -55,7 +144,7 @@ const RequestsPreview: React.FC = () => {
         </Card>
       ) : (
         <>
-          {displayRequests.map((request) => (
+          {displayRequests.map((request: Connection) => (
             <Card key={request.id} className="mb-3 overflow-hidden">
               <CardContent className="p-3">
                 <div className="flex items-center">
@@ -82,6 +171,7 @@ const RequestsPreview: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   className="flex-1 rounded-none text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => handleReject(request.id)}
                 >
                   Decline
                 </Button>
@@ -89,6 +179,7 @@ const RequestsPreview: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   className="flex-1 rounded-none text-green-600 hover:text-green-700 hover:bg-green-50"
+                  onClick={() => handleAccept(request.id)}
                 >
                   Accept
                 </Button>

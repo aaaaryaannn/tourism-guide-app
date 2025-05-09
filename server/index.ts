@@ -1,84 +1,98 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase } from "./data/seed-data";
-import { seedMissingData } from "./data/seed-missing-data";
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { registerRoutes } from './routes';
+import { initializeDatabase } from './db';
+import { setupVite, serveStatic } from './vite';
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
-
-(async () => {
-  // Initialize database and seed data
-  console.log("Initializing database...");
-  try {
-    await seedDatabase();
-    // Additionally seed any missing attractions and guides
-    await seedMissingData();
-    console.log("Database initialization complete");
-    console.log("Database ready");
-  } catch (error) {
-    console.error("Database initialization error:", error);
-  }
+async function createApp() {
+  const app = express();
   
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+  // Create HTTP server first
+  const server = createServer(app);
+  
+  // Add basic middleware
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  
+  // Add CORS middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    next();
   });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  
+  // Add logging middleware for API calls
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      const start = Date.now();
+      console.log(`[API] ${req.method} ${req.path}`);
+      
+      if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+        console.log('Request body:', req.body);
+      }
+      
+      // Capture the original send to log response
+      const originalSend = res.send;
+      res.send = function(...args) {
+        const duration = Date.now() - start;
+        console.log(`[API] ${req.method} ${req.path} completed in ${duration}ms`);
+        console.log('Response:', args[0]);
+        return originalSend.apply(res, args);
+      };
+    }
+    next();
+  });
+  
+  // Initialize database
+  await initializeDatabase();
+  
+  // Register API routes BEFORE Vite middleware
+  await registerRoutes(app);
+  
+  // Add error handling for API routes
+  app.use('/api', (err: any, _req: Request, res: Response, next: NextFunction) => {
+    console.error('[API Error]', err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(err.status || 500).json({
+      message: err.message || 'Internal Server Error',
+      error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+  });
+  
+  // Setup Vite in development, static serving in production
+  if (process.env.NODE_ENV !== 'production') {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
+  
+  return { app, server };
+}
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+// Start the server
+async function startServer() {
+  try {
+    const { app, server } = await createApp();
+    
+    const port = process.env.PORT || 5000;
+    server.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+    
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

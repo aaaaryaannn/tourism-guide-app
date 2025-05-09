@@ -19,6 +19,68 @@
   animation: pulse 2s infinite;
 }
 
+/* Z-index hierarchy */
+.leaflet-container, .leaflet-pane {
+  z-index: 10 !important;
+}
+
+.search-bar, header, .chat-assistant {
+  z-index: 20 !important;
+}
+
+.bottom-navigation {
+  z-index: 30 !important;
+}
+
+.bottom-sheet-drag {
+  z-index: 46 !important;
+  cursor: grab;
+  touch-action: none;
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-sheet-drag::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background-color: transparent;
+  z-index: 999;
+}
+
+.bottom-sheet-drag:active {
+  cursor: grabbing;
+}
+
+.bottom-sheet {
+  z-index: 45 !important;
+}
+
+.attraction-info, .tour-request, .dialog-overlay, .popover {
+  z-index: 50 !important;
+}
+
+.dialog-content {
+  z-index: 51 !important;
+}
+
+/* Fix leaflet controls to appear above the map but below UI elements */
+.leaflet-control {
+  z-index: 15 !important;
+}
+
+/* Fix popup z-index */
+.leaflet-popup {
+  z-index: 16 !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

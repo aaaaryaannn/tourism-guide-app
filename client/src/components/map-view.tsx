@@ -1,199 +1,441 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.locatecontrol/dist/L.Control.Locate.min.css";
+import "leaflet.locatecontrol";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import fixLeafletMapErrors from "@/lib/leaflet-fix";
 
-// Define Coordinates type
-export type Coordinates = {
+// Define the types for the marker position
+export interface LatLng {
   lat: number;
   lng: number;
-};
+}
+
+// Define MarkerType enum for different marker icons
+export type MarkerType = 'attraction' | 'guide' | 'user' | 'poi';
+
+export interface IMarker {
+  id?: string | number;
+  position: LatLng;
+  title?: string;
+  popup?: string;
+  customIcon?: boolean;
+  markerType?: MarkerType;
+}
 
 // Props interface for MapView component
 interface MapViewProps {
-  center?: Coordinates;
+  center?: LatLng;
   zoom?: number;
-  markers?: Array<{
-    position: Coordinates;
-    title?: string;
-    popup?: string;
-    customIcon?: boolean;
-    markerType?: 'attraction' | 'guide' | 'user' | 'poi';
-  }>;
-  onMapClick?: (coords: Coordinates) => void;
+  markers?: IMarker[];
+  onMapClick?: (latlng: LatLng) => void;
+  onMarkerClick?: (marker: IMarker) => void;
   bottomSheetOpen?: boolean;
-  onBottomSheetOpenChange?: (open: boolean) => void;
+  onBottomSheetOpenChange?: (isOpen: boolean) => void;
   bottomSheetContent?: React.ReactNode;
   className?: string;
   enableDragging?: boolean;
 }
 
+// Add error handling for map initialization
+const tryInitMap = (container: HTMLElement, options: L.MapOptions): L.Map | null => {
+  try {
+    // Apply Leaflet fixes before initializing
+    fixLeafletMapErrors();
+    
+    // Create map with error handling
+    return L.map(container, {
+      ...options,
+      // Set fadeAnimation to false to avoid _leaflet_pos errors
+      fadeAnimation: false
+    });
+  } catch (error) {
+    console.error('[MapView] Error initializing map:', error);
+    return null;
+  }
+};
+
 const MapView: React.FC<MapViewProps> = ({
-  center = { lat: 19.0760, lng: 72.8777 }, // Default to Mumbai
-  zoom = 10,
+  center = { lat: 19.076, lng: 72.8777 }, // Mumbai as default center
+  zoom = 12,
   markers = [],
   onMapClick,
-  bottomSheetOpen = false,
+  onMarkerClick,
+  bottomSheetOpen = true,
   onBottomSheetOpenChange,
   bottomSheetContent,
-  className,
+  className = "",
   enableDragging = true,
 }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const [isMapReady, setIsMapReady] = useState(false);
-  
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<{ [key: string]: L.Marker }>({});
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [dragPosition, setDragPosition] = useState<number | null>(null);
+  const [startDragY, setStartDragY] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [bottomSheetHeight, setBottomSheetHeight] = useState<number>(
+    bottomSheetOpen ? 300 : 80
+  );
+
+  // Get user's location when component mounts
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(newLocation);
+          
+          // Update map center to user location if map exists
+          if (mapRef.current) {
+            mapRef.current.setView([newLocation.lat, newLocation.lng], zoom);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+  }, []);
+
   // Initialize map
   useEffect(() => {
-    if (mapRef.current && !mapInstanceRef.current) {
+    if (mapContainerRef.current && !mapRef.current) {
       // Create map instance
-      const map = L.map(mapRef.current, {
-        center: [center.lat, center.lng],
+      mapRef.current = tryInitMap(mapContainerRef.current, {
+        center: [userLocation?.lat || center.lat, userLocation?.lng || center.lng],
         zoom,
         zoomControl: false,
-        dragging: enableDragging,
-        tap: enableDragging,
+        // @ts-ignore - 'tap' is valid in Leaflet but not in TypeScript definitions
+        tap: true,
       });
       
-      // Add tile layer (OpenStreetMap)
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
-      
-      // Add zoom control to top right
-      L.control.zoom({ position: "topright" }).addTo(map);
-      
-      // Create markers layer group
-      markersLayerRef.current = L.layerGroup().addTo(map);
-      
-      // Setup map click event
-      if (onMapClick) {
-        map.on("click", (e) => {
-          onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-        });
-      }
-      
-      // Store map instance
-      mapInstanceRef.current = map;
-      setIsMapReady(true);
-      
-      // Cleanup on component unmount
-      return () => {
-        map.remove();
-        mapInstanceRef.current = null;
-        markersLayerRef.current = null;
-      };
-    }
-  }, [center.lat, center.lng, zoom, onMapClick, enableDragging]);
-  
-  // Update markers when they change
-  useEffect(() => {
-    if (isMapReady && mapInstanceRef.current && markersLayerRef.current) {
-      // Clear existing markers
-      markersLayerRef.current.clearLayers();
-      
-      // Add new markers
-      markers.forEach((marker) => {
-        // Define marker color and icon based on marker type
-        let bgColor = '#DC143C'; // Default color - crimson
-        let iconHtml = '';
+      if (mapRef.current) {
+        // Add tile layer - using OpenStreetMap
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        }).addTo(mapRef.current);
         
-        if (marker.customIcon) {
-          switch (marker.markerType) {
-            case 'user':
-              bgColor = '#4285F4'; // Blue for user location
-              iconHtml = `<div class="marker-pin bg-[${bgColor}] w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white pulse-animation">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-                  <circle cx="12" cy="12" r="10" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </div>`;
+        // Add zoom control to top right
+        L.control.zoom({ position: "topright" }).addTo(mapRef.current);
+
+        // Add location control
+        // @ts-ignore - LocateControl is not in the type definitions
+        L.control.locate({
+          position: 'topright',
+          strings: {
+            title: "Show my location"
+          } as Record<string, string>,
+          flyTo: true,
+          cacheLocation: false,
+          showCompass: true,
+          showPopup: false,
+          locateOptions: {
+            enableHighAccuracy: true
+          }
+        } as L.ControlOptions).addTo(mapRef.current);
+        
+        // Handle map click events if callback provided
+        if (onMapClick) {
+          mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
+            const { lat, lng } = e.latlng;
+            onMapClick({ lat, lng });
+          });
+        }
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Function to force close the sheet
+  const forceCloseSheet = () => {
+    if (onBottomSheetOpenChange) {
+      onBottomSheetOpenChange(false);
+    }
+    setBottomSheetHeight(80);
+    setDragPosition(null);
+    setStartDragY(null);
+    setIsDragging(false);
+  };
+  
+  // Update map center and zoom if props change
+  useEffect(() => {
+    if (mapRef.current) {
+      console.log("Updating map center:", center);
+      mapRef.current.setView([center.lat, center.lng], zoom);
+      
+      // Add or update user location marker
+      if (markersRef.current['userLocation']) {
+        markersRef.current['userLocation'].setLatLng([center.lat, center.lng]);
+      } else {
+        // Create a custom icon for user location
+        const userIcon = L.divIcon({
+          className: 'user-location-marker',
+          html: '<div class="user-location-dot"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+
+        // Add user location marker
+        markersRef.current['userLocation'] = L.marker([center.lat, center.lng], {
+          icon: userIcon,
+          zIndexOffset: 1000
+        }).addTo(mapRef.current);
+      }
+    }
+  }, [center, zoom]);
+
+  // Add styles for user location marker
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .user-location-marker {
+        background: none;
+        border: none;
+      }
+      .user-location-dot {
+        width: 20px;
+        height: 20px;
+        background-color: #4285F4;
+        border: 4px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px #4285F4;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Helper function to validate coordinates
+  const isValidLatLng = (lat: number, lng: number): boolean => {
+    return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  };
+
+  // Create custom marker icons for different marker types
+  const getMarkerIcon = (markerType: MarkerType = 'attraction') => {
+    let iconUrl = '';
+    let iconSize: [number, number] = [25, 41];
+    
+    switch (markerType) {
+      case 'attraction':
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png';
               break;
             case 'guide':
-              bgColor = '#34A853'; // Green for guides
-              iconHtml = `<div class="marker-pin bg-[${bgColor}] w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </div>`;
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png';
+        break;
+      case 'user':
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png';
               break;
-            case 'attraction':
-              bgColor = '#FBBC05'; // Yellow for attractions
-              iconHtml = `<div class="marker-pin bg-[${bgColor}] w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3">
-                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
-                </svg>
-              </div>`;
+      case 'poi':
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png';
               break;
             default:
-              // Default icon for POIs
-              iconHtml = `<div class="marker-pin bg-[${bgColor}] w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>`;
-          }
-        } else {
-          // Default icon
-          iconHtml = `<div class="marker-pin bg-[${bgColor}] w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md"></div>`;
-        }
-        
-        const icon = L.divIcon({
-          className: "custom-div-icon",
-          html: iconHtml,
-          iconSize: marker.markerType === 'user' ? [40, 40] : [30, 30],
-          iconAnchor: marker.markerType === 'user' ? [20, 20] : [15, 15],
-        });
-        
-        const markerInstance = L.marker([marker.position.lat, marker.position.lng], { icon })
-          .addTo(markersLayerRef.current!);
-        
-        if (marker.popup) {
-          markerInstance.bindPopup(marker.popup);
-        } else if (marker.title) {
-          markerInstance.bindPopup(marker.title);
-        }
-      });
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png';
     }
-  }, [markers, isMapReady]);
-  
-  // Update map center and zoom when they change
+    
+    return L.icon({
+      iconUrl,
+      iconSize,
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      shadowSize: [41, 41],
+    });
+  };
+
+  // Update markers when props change
   useEffect(() => {
-    if (isMapReady && mapInstanceRef.current) {
-      mapInstanceRef.current.setView([center.lat, center.lng], zoom);
+    if (!mapRef.current) return;
+
+    // Clear existing markers
+    Object.values(markersRef.current).forEach((marker) => {
+      marker.remove();
+    });
+    markersRef.current = {};
+
+    // Add new markers
+    markers.forEach((marker, index) => {
+      const markerId = marker.id?.toString() || `marker-${index}`;
+      const { position, title = "", popup = "", customIcon = false, markerType = 'attraction' } = marker;
+      
+      // Skip invalid coordinates to prevent errors
+      if (!isValidLatLng(position.lat, position.lng)) {
+        console.warn(`Invalid coordinates for marker ${markerId}: [${position.lat}, ${position.lng}]`);
+        return;
+      }
+
+      const markerInstance = customIcon 
+        ? L.marker([position.lat, position.lng], { icon: getMarkerIcon(markerType) })
+        : L.marker([position.lat, position.lng]);
+
+      if (popup) {
+        markerInstance.bindPopup(popup);
+      }
+
+      // Add marker to map
+      markerInstance.addTo(mapRef.current!);
+
+      // Handle marker click event if callback provided
+      if (onMarkerClick) {
+        markerInstance.on("click", () => {
+          onMarkerClick(marker);
+        });
+      }
+
+      // Store marker reference
+      markersRef.current[markerId] = markerInstance;
+    });
+  }, [markers, onMarkerClick]);
+
+  // Handle bottom sheet open/close
+  useEffect(() => {
+    setBottomSheetHeight(bottomSheetOpen ? 300 : 80);
+  }, [bottomSheetOpen]);
+
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!enableDragging) return;
+    
+    // Only prevent default for mouse events to avoid breaking touch scrolling
+    if (!("touches" in e)) {
+      e.preventDefault();
     }
-  }, [center.lat, center.lng, zoom, isMapReady]);
+    const clientY =
+      "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    setStartDragY(clientY);
+    setIsDragging(true);
+    
+    // Add a class to the body to prevent scrolling
+    document.body.classList.add('bottom-sheet-dragging');
+  };
+
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (startDragY === null || !isDragging) return;
+    
+    // Only prevent default for mouse events to avoid breaking touch scrolling
+    if (!("touches" in e)) {
+      e.preventDefault();
+    }
+    
+    const clientY =
+      "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const deltaY = startDragY - clientY;
+    
+    // Calculate new position
+    const newPosition = Math.max(
+      80,
+      Math.min(bottomSheetHeight + deltaY, 500)
+    );
+    
+    setDragPosition(newPosition);
+  };
+
+  const handleDragEnd = () => {
+    if (startDragY === null || !enableDragging) return;
+    
+    // Use dragPosition if available, otherwise fall back to the current bottomSheetHeight
+    const threshold = 150;
+    const currentPosition = dragPosition !== null ? dragPosition : bottomSheetHeight;
+    const newOpen = currentPosition > threshold;
+    
+    if (onBottomSheetOpenChange) {
+      onBottomSheetOpenChange(newOpen);
+    }
+    
+    setBottomSheetHeight(newOpen ? 300 : 80);
+    setDragPosition(null);
+    setStartDragY(null);
+    setIsDragging(false);
+    
+    // Remove the class from the body
+    document.body.classList.remove('bottom-sheet-dragging');
+  };
+
+  // Properly handle global mouse move and mouse up for dragging
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        const deltaY = startDragY! - e.clientY;
+        const newPosition = Math.max(
+          80,
+          Math.min(bottomSheetHeight + deltaY, 500)
+        );
+        setDragPosition(newPosition);
+      }
+    };
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches && e.touches.length > 0) {
+        const deltaY = startDragY! - e.touches[0].clientY;
+        const newPosition = Math.max(
+          80,
+          Math.min(bottomSheetHeight + deltaY, 500)
+        );
+        setDragPosition(newPosition);
+      }
+    };
+
+    const handleGlobalEnd = () => {
+      if (isDragging) {
+        handleDragEnd();
+      }
+    };
+
+    // Add global event listeners
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalEnd);
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+      document.addEventListener('touchend', handleGlobalEnd);
+    }
+
+    // Clean up
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalEnd);
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalEnd);
+    };
+  }, [isDragging, startDragY, bottomSheetHeight]);
+
+  // Update height when bottomSheetOpen changes
+  useEffect(() => {
+    setBottomSheetHeight(bottomSheetOpen ? 300 : 80);
+  }, [bottomSheetOpen]);
   
   return (
-    <div className={`relative flex-1 ${className}`}>
-      <div ref={mapRef} className="w-full h-full z-0" />
+    <div className={`relative w-full h-full ${className}`}>
+      <div ref={mapContainerRef} className="w-full h-full leaflet-container"></div>
       
-      {bottomSheetContent && (
-        <Sheet open={bottomSheetOpen} onOpenChange={onBottomSheetOpenChange}>
-          <SheetContent 
-            side="bottom" 
-            className="h-auto max-h-[80%] overflow-auto rounded-t-xl p-0"
-          >
-            <div className="pt-2 pb-1 flex justify-center">
-              <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-            </div>
-            {bottomSheetContent}
-          </SheetContent>
-        </Sheet>
-      )}
-      
-      {/* Recenter button */}
+      {/* Map center button */}
       <Button
-        size="icon"
+        size="sm"
         variant="secondary"
-        className="absolute bottom-4 right-4 z-10 h-10 w-10 rounded-full shadow-md bg-white hover:bg-gray-100"
+        className="absolute right-4 bottom-4 z-[20] rounded-full shadow-md bg-white opacity-80 hover:opacity-100 h-10 w-10 p-0"
         onClick={() => {
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([center.lat, center.lng], zoom);
+          if (mapRef.current) {
+            mapRef.current.setView([center.lat, center.lng], zoom);
           }
         }}
       >
@@ -207,12 +449,58 @@ const MapView: React.FC<MapViewProps> = ({
           strokeLinejoin="round"
           className="h-5 w-5"
         >
-          <path d="M21 3 3 21" />
-          <path d="M21 21 3 3" />
-          <circle cx="12" cy="12" r="7" />
-          <circle cx="12" cy="12" r="3" />
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v8" />
+          <path d="M8 12h8" />
         </svg>
       </Button>
+      
+      {/* Fixed minimize button that's always visible when sheet is open */}
+      {bottomSheetContent && bottomSheetOpen && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute left-4 bottom-4 z-[46] rounded-full shadow-md bg-white opacity-80 hover:opacity-100 h-10 w-10 p-0"
+          onClick={() => forceCloseSheet()}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </Button>
+      )}
+      
+      {/* Use the shadcn/ui Sheet component for the bottom sheet */}
+      {bottomSheetContent && (
+        <Sheet open={bottomSheetOpen} onOpenChange={onBottomSheetOpenChange}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[60vh] px-0 rounded-t-xl overflow-hidden bottom-sheet"
+          >
+            <div className="flex flex-col h-full">
+              <div className="flex justify-center py-2 border-b border-gray-100 bottom-sheet-drag relative z-[999]">
+                <div 
+                  className="w-16 h-2.5 bg-gray-400 rounded-full cursor-grab shadow-sm hover:bg-gray-500 transition-colors"
+                  onMouseDown={enableDragging ? handleDragStart : undefined}
+                  onTouchStart={enableDragging ? handleDragStart : undefined}
+                  style={{ position: 'relative', top: 0, touchAction: 'none' }}
+                ></div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {bottomSheetContent}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 };

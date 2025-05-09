@@ -13,11 +13,53 @@ export function getCurrentPosition(): Promise<GeolocationPosition> {
       return;
     }
     
+    // First check if we have permission
+    navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      .then(permissionStatus => {
+        if (permissionStatus.state === 'denied') {
+          reject(new Error("Location permission denied. Please enable location access in your browser settings."));
+          return;
+        }
+
+        // Get the position with high accuracy
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position),
-      (error) => reject(error),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          (position) => {
+            console.log("Location obtained successfully:", {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            });
+            resolve(position);
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            let errorMessage = "Failed to get your location";
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = "Location permission denied. Please enable location access in your browser settings.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "Location request timed out.";
+                break;
+              default:
+                errorMessage = "An unknown error occurred while getting your location.";
+            }
+            reject(new Error(errorMessage));
+          },
+          { 
+            enableHighAccuracy: true, 
+            timeout: 10000, 
+            maximumAge: 0 
+          }
     );
+      })
+      .catch(error => {
+        console.error("Error checking geolocation permission:", error);
+        reject(new Error("Failed to check location permission"));
+      });
   });
 }
 

@@ -1,11 +1,11 @@
-import { db } from "../db";
+import { db } from "../db.ts";
 import { 
-  users, 
-  guideProfiles, 
-  places, 
-  bookings
-} from "@shared/schema";
-import { sql } from "drizzle-orm";
+  userSchema,
+  guideProfileSchema,
+  placeSchema,
+  bookingSchema
+} from "../../shared/schema.ts";
+import { ObjectId } from 'mongodb';
 
 // Maharashtra attractions with images, descriptions, and coordinates
 const maharashtraAttractions = [
@@ -459,96 +459,47 @@ const maharashtraHotels = [
 ];
 
 export async function seedDatabase() {
-  console.log("Checking if database needs seeding...");
-  
-  // Check if we already have users
-  const existingUsers = await db.select().from(users);
-  
-  if (existingUsers.length > 0) {
-    console.log("Database already has users, skipping seed process");
-    return;
+  try {
+    // Clear existing data
+    await db.collection('users').deleteMany({});
+    await db.collection('guideProfiles').deleteMany({});
+    await db.collection('places').deleteMany({});
+    await db.collection('bookings').deleteMany({});
+
+    // Insert places
+    const placeResults = await Promise.all(
+      maharashtraAttractions.map(async (place) => {
+        const validatedPlace = placeSchema.omit({ id: true }).parse(place);
+        const result = await db.collection('places').insertOne(validatedPlace);
+        return { ...place, id: result.insertedId.toString() };
+      })
+    );
+
+    // Insert guides and their profiles
+    const guideResults = await Promise.all(
+      maharashtraGuides.map(async (guide) => {
+        const { guideProfile, ...userData } = guide;
+        const validatedUser = userSchema.omit({ id: true }).parse(userData);
+        const userResult = await db.collection('users').insertOne(validatedUser);
+        
+        const validatedProfile = guideProfileSchema.omit({ id: true }).parse({
+          ...guideProfile,
+          userId: userResult.insertedId.toString()
+        });
+        const profileResult = await db.collection('guideProfiles').insertOne(validatedProfile);
+        
+        return {
+          user: { ...userData, id: userResult.insertedId.toString() },
+          profile: { ...guideProfile, id: profileResult.insertedId.toString() }
+        };
+      })
+    );
+
+    console.log('Database seeded successfully!');
+    console.log(`Inserted ${placeResults.length} places`);
+    console.log(`Inserted ${guideResults.length} guides with profiles`);
+  } catch (error) {
+    console.error('Error seeding database:', error);
+    throw error;
   }
-  
-  console.log("Seeding database with initial data...");
-  
-  // Create admin/tourist users
-  await db.insert(users).values([
-    {
-      username: "admin",
-      email: "admin@example.com",
-      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-      fullName: "Admin User",
-      phone: "1234567890",
-      userType: "admin",
-      createdAt: new Date()
-    },
-    {
-      username: "tourist1",
-      email: "tourist1@example.com",
-      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-      fullName: "Tourist One",
-      phone: "9876543201",
-      userType: "tourist",
-      createdAt: new Date()
-    }
-  ]);
-  
-  // Add guide users and profiles
-  for (const guide of maharashtraGuides) {
-    const [user] = await db.insert(users).values({
-      username: guide.username,
-      email: guide.email,
-      password: guide.password,
-      fullName: guide.fullName,
-      phone: guide.phone,
-      userType: guide.userType,
-      currentLatitude: (18.5 + Math.random() * 1.5).toString(), // Random location in Maharashtra
-      currentLongitude: (73.5 + Math.random() * 1.5).toString(),
-      createdAt: new Date()
-    }).returning();
-    
-    await db.insert(guideProfiles).values({
-      userId: user.id,
-      location: guide.guideProfile.location,
-      experience: guide.guideProfile.experience,
-      languages: guide.guideProfile.languages,
-      specialties: guide.guideProfile.specialties,
-      rating: guide.guideProfile.rating,
-      bio: guide.guideProfile.bio
-    });
-  }
-  
-  // Add attractions
-  await db.insert(places).values(maharashtraAttractions);
-  
-  // Add hotels
-  await db.insert(places).values(maharashtraHotels);
-  
-  // Sample bookings
-  await db.insert(bookings).values([
-    {
-      type: "hotel",
-      userId: 2, // tourist1
-      from: "Mumbai",
-      to: "Pune",
-      departureDate: "2025-04-10",
-      returnDate: "2025-04-15",
-      passengers: 2,
-      roomCount: 1,
-      bookingDetails: "Deluxe room, breakfast included",
-      createdAt: new Date()
-    },
-    {
-      type: "transport",
-      userId: 2, // tourist1
-      from: "Mumbai",
-      to: "Aurangabad",
-      departureDate: "2025-05-20",
-      returnDate: "2025-05-25",
-      passengers: 1,
-      createdAt: new Date()
-    }
-  ]);
-  
-  console.log("Database seeding complete!");
 }

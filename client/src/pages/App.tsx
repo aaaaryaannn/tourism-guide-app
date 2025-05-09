@@ -14,6 +14,7 @@ import HotelBooking from "@/pages/hotel-booking";
 import TripPlanner from "@/pages/trip-planner";
 import Connections from "@/pages/connections";
 import Profile from "@/pages/profile";
+import GuideProfile from "@/pages/guide-profile";
 import NotFound from "@/pages/not-found";
 
 // Import guide pages
@@ -65,10 +66,13 @@ function App() {
     setIsLoading(true);
     
     try {
+      // Check if username is an email
+      const email = username.includes('@') ? username : undefined;
+      
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, email }),
       });
       
       if (!response.ok) {
@@ -181,7 +185,7 @@ function App() {
                 <Route path="/guide-requests" component={GuideRequests} />
                 <Route path="/guide-itineraries" component={GuideItineraries} />
                 <Route path="/guide-connections" component={GuideConnections} />
-                <Route path="/profile" component={() => <Profile user={user} logout={logout} />} />
+                <Route path="/guide-profile" component={GuideProfile} />
               </>
             )}
           </>

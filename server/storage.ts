@@ -1,269 +1,444 @@
-import { 
-  users, User, InsertUser, 
-  guideProfiles, GuideProfile, InsertGuideProfile,
-  places, Place, InsertPlace,
-  itineraries, Itinerary, InsertItinerary,
-  itineraryPlaces, ItineraryPlace, InsertItineraryPlace,
-  bookings, Booking, InsertBooking,
-  connections, Connection, InsertConnection,
-  savedPlaces, SavedPlace, InsertSavedPlace
-} from "@shared/schema";
+import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Connection, SavedPlace } from "../shared/schema.ts";
+import { db } from './db.ts';
+import type { IStorage } from './storage.interface.ts';
+import { ObjectId } from 'mongodb';
 
-export interface IStorage {
+export class MongoStorage implements IStorage {
   // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  async getUser(id: string): Promise<User | undefined> {
+    const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    if (!user) return undefined;
+    const { _id, ...rest } = user;
+    return { ...rest, id: _id.toString() } as User;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const user = await db.collection('users').findOne({ email });
+    if (!user) return undefined;
+    const { _id, ...rest } = user;
+    return { ...rest, id: _id.toString() } as User;
+  }
+
+  async createUser(user: Omit<User, 'id'>): Promise<User> {
+    try {
+      console.log("In createUser, data:", JSON.stringify(user, null, 2));
+      // Add a createdAt date if not provided
+      const userData = {
+        ...user,
+        createdAt: user.createdAt || new Date()
+      };
+      
+      console.log("Inserting user into MongoDB:", JSON.stringify(userData, null, 2));
+      const result = await db.collection('users').insertOne(userData);
+      console.log("Insert result:", JSON.stringify(result, null, 2));
+      
+      if (!result.insertedId) {
+        throw new Error("Failed to create user - no insertedId returned");
+      }
+      
+      const insertedUser = { ...userData, id: result.insertedId.toString() } as User;
+      console.log("User created successfully:", JSON.stringify(insertedUser, null, 2));
+      return insertedUser;
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: string, user: Partial<User>): Promise<User | undefined> {
+    const { id: _, ...updateData } = user;
+    const result = await db.collection('users').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    if (!result.value) return undefined;
+    const { _id, ...rest } = result.value;
+    return { ...rest, id: _id.toString() } as User;
+  }
   
   // Guide methods
-  getGuideProfile(userId: number): Promise<GuideProfile | undefined>;
-  createGuideProfile(guideProfile: InsertGuideProfile): Promise<GuideProfile>;
-  getAvailableGuides(): Promise<(User & { guideProfile: GuideProfile })[]>;
+  async getGuideProfile(userId: string): Promise<GuideProfile | undefined> {
+    const profile = await db.collection('guideProfiles').findOne({ userId });
+    if (!profile) return undefined;
+    const { _id, ...rest } = profile;
+    return { ...rest, id: _id.toString() } as GuideProfile;
+  }
+
+  async createGuideProfile(profile: Omit<GuideProfile, 'id'>): Promise<GuideProfile> {
+    const result = await db.collection('guideProfiles').insertOne(profile);
+    if (!result.insertedId) throw new Error('Failed to create guide profile');
+    return { ...profile, id: result.insertedId.toString() } as GuideProfile;
+  }
+
+  async updateGuideProfile(id: string, profile: Partial<GuideProfile>): Promise<GuideProfile | undefined> {
+    const { id: _, ...updateData } = profile;
+    const result = await db.collection('guideProfiles').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    if (!result.value) return undefined;
+    const { _id, ...rest } = result.value;
+    return { ...rest, id: _id.toString() } as GuideProfile;
+  }
   
   // Places methods
-  getPlace(id: number): Promise<Place | undefined>;
-  getPlaces(category?: string): Promise<Place[]>;
-  createPlace(place: InsertPlace): Promise<Place>;
+  async getPlace(id: string): Promise<Place | undefined> {
+    const place = await db.collection('places').findOne({ _id: new ObjectId(id) });
+    if (!place) return undefined;
+    const { _id, ...rest } = place;
+    return { ...rest, id: _id.toString() } as Place;
+  }
+
+  async getPlaces(): Promise<Place[]> {
+    const places = await db.collection('places').find().toArray();
+    return places.map(place => {
+      const { _id, ...rest } = place;
+      return { ...rest, id: _id.toString() } as Place;
+    });
+  }
+
+  async createPlace(place: Omit<Place, 'id'>): Promise<Place> {
+    const result = await db.collection('places').insertOne(place);
+    if (!result.insertedId) throw new Error('Failed to create place');
+    return { ...place, id: result.insertedId.toString() } as Place;
+  }
   
   // Itinerary methods
-  getItineraries(userId: number): Promise<Itinerary[]>;
-  getItinerary(id: number): Promise<Itinerary | undefined>;
-  createItinerary(itinerary: InsertItinerary): Promise<Itinerary>;
+  async getItinerary(id: string): Promise<Itinerary | undefined> {
+    const itinerary = await db.collection('itineraries').findOne({ _id: new ObjectId(id) });
+    if (!itinerary) return undefined;
+    const { _id, ...rest } = itinerary;
+    return { ...rest, id: _id.toString() } as Itinerary;
+  }
+
+  async createItinerary(itinerary: Omit<Itinerary, 'id'>): Promise<Itinerary> {
+    const result = await db.collection('itineraries').insertOne(itinerary);
+    if (!result.insertedId) throw new Error('Failed to create itinerary');
+    return { ...itinerary, id: result.insertedId.toString() } as Itinerary;
+  }
   
   // Itinerary places methods
-  getItineraryPlaces(itineraryId: number): Promise<ItineraryPlace[]>;
-  addPlaceToItinerary(itineraryPlace: InsertItineraryPlace): Promise<ItineraryPlace>;
+  async getItineraryPlaces(itineraryId: string): Promise<ItineraryPlace[]> {
+    const places = await db.collection('itineraryPlaces').find({ itineraryId }).toArray();
+    return places.map(place => {
+      const { _id, ...rest } = place;
+      return { ...rest, id: _id.toString() } as ItineraryPlace;
+    });
+  }
+
+  async createItineraryPlace(place: Omit<ItineraryPlace, 'id'>): Promise<ItineraryPlace> {
+    const result = await db.collection('itineraryPlaces').insertOne(place);
+    if (!result.insertedId) throw new Error('Failed to create itinerary place');
+    return { ...place, id: result.insertedId.toString() } as ItineraryPlace;
+  }
   
   // Booking methods
-  getBookings(userId: number, type?: string): Promise<Booking[]>;
-  createBooking(booking: InsertBooking): Promise<Booking>;
+  async getBooking(id: string): Promise<Booking | undefined> {
+    const booking = await db.collection('bookings').findOne({ _id: new ObjectId(id) });
+    if (!booking) return undefined;
+    const { _id, ...rest } = booking;
+    return { ...rest, id: _id.toString() } as Booking;
+  }
+
+  async createBooking(booking: Omit<Booking, 'id'>): Promise<Booking> {
+    const result = await db.collection('bookings').insertOne(booking);
+    if (!result.insertedId) throw new Error('Failed to create booking');
+    return { ...booking, id: result.insertedId.toString() } as Booking;
+  }
   
   // Connection methods
-  getConnections(userId: number): Promise<Connection[]>;
-  createConnection(connection: InsertConnection): Promise<Connection>;
-  updateConnectionStatus(id: number, status: string): Promise<Connection | undefined>;
-  
-  // Saved places methods
-  getSavedPlaces(userId: number): Promise<SavedPlace[]>;
-  savePlaceForUser(savedPlace: InsertSavedPlace): Promise<SavedPlace>;
-  removeSavedPlace(id: number): Promise<void>;
-  
-  // Geolocation methods
-  updateUserLocation(userId: number, latitude: string, longitude: string): Promise<User>;
-  getNearbyGuides(latitude: string, longitude: string, radiusKm?: number): Promise<User[]>;
-  getNearbyPlaces(latitude: string, longitude: string, radiusKm?: number, category?: string): Promise<Place[]>;
-}
-
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private guideProfiles: Map<number, GuideProfile>;
-  private places: Map<number, Place>;
-  private itineraries: Map<number, Itinerary>;
-  private itineraryPlaces: Map<number, ItineraryPlace>;
-  private bookings: Map<number, Booking>;
-  private connections: Map<number, Connection>;
-  private savedPlaces: Map<number, SavedPlace>;
-  
-  private currentUserId: number;
-  private currentGuideProfileId: number;
-  private currentPlaceId: number;
-  private currentItineraryId: number;
-  private currentItineraryPlaceId: number;
-  private currentBookingId: number;
-  private currentConnectionId: number;
-  private currentSavedPlaceId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.guideProfiles = new Map();
-    this.places = new Map();
-    this.itineraries = new Map();
-    this.itineraryPlaces = new Map();
-    this.bookings = new Map();
-    this.connections = new Map();
-    this.savedPlaces = new Map();
+  async getConnections(userId: string | number): Promise<Connection[]> {
+    console.log("[storage] Getting connections for user:", userId, "Type:", typeof userId);
     
-    this.currentUserId = 1;
-    this.currentGuideProfileId = 1;
-    this.currentPlaceId = 1;
-    this.currentItineraryId = 1;
-    this.currentItineraryPlaceId = 1;
-    this.currentBookingId = 1;
-    this.currentConnectionId = 1;
-    this.currentSavedPlaceId = 1;
+    // Convert userId to string for consistent comparison
+    const userIdStr = userId.toString();
     
-    // Initialize with sample data
-    this.initializeSampleData();
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, createdAt: new Date() };
-    this.users.set(id, user);
-    return user;
-  }
-  
-  async getGuideProfile(userId: number): Promise<GuideProfile | undefined> {
-    return Array.from(this.guideProfiles.values()).find(
-      (profile) => profile.userId === userId,
-    );
-  }
-  
-  async createGuideProfile(guideProfile: InsertGuideProfile): Promise<GuideProfile> {
-    const id = this.currentGuideProfileId++;
-    const profile: GuideProfile = { ...guideProfile, id };
-    this.guideProfiles.set(id, profile);
-    return profile;
-  }
-  
-  async getAvailableGuides(): Promise<(User & { guideProfile: GuideProfile })[]> {
-    const guides: (User & { guideProfile: GuideProfile })[] = [];
+    // Search for connections where the user is either the sender or recipient
+    const connections = await db.collection('connections').find({
+      $or: [
+        { fromUserId: userIdStr }, 
+        { toUserId: userIdStr }
+      ]
+    }).toArray();
+      
+    console.log(`[storage] Found ${connections.length} connections for user ${userId}`);
     
-    for (const user of this.users.values()) {
-      if (user.userType === 'guide') {
-        const guideProfile = await this.getGuideProfile(user.id);
-        if (guideProfile) {
-          guides.push({
-            ...user,
-            guideProfile
-          });
+    // Map connections and populate user data
+    const populatedConnections = await Promise.all(connections.map(async connection => {
+      const { _id, ...rest } = connection;
+      
+      // Create base connection with string IDs
+      const baseConnection = { 
+        ...rest, 
+        id: _id.toString(),
+        fromUserId: String(rest.fromUserId || ""),
+        toUserId: String(rest.toUserId || "")
+      };
+      
+      try {
+        // Get fromUser data
+        const fromUser = await this.getUser(baseConnection.fromUserId);
+        if (fromUser) {
+          const { password, ...fromUserSafe } = fromUser;
+          baseConnection.fromUser = fromUserSafe;
+        }
+        
+        // Get toUser data
+        const toUser = await this.getUser(baseConnection.toUserId);
+        if (toUser) {
+          const { password, ...toUserSafe } = toUser;
+          baseConnection.toUser = toUserSafe;
+        }
+        
+        // If toUser is a guide, get their guide profile
+        if (toUser?.userType === 'guide') {
+          const guideProfile = await this.getGuideProfile(baseConnection.toUserId);
+          if (guideProfile) {
+            baseConnection.guideProfile = guideProfile;
+          }
+        }
+      } catch (error) {
+        console.error("[storage] Error populating user data for connection:", error);
+      }
+      
+      return baseConnection as Connection;
+    }));
+    
+    return populatedConnections;
+  }
+
+  async createConnection(connection: Omit<Connection, 'id'>): Promise<Connection> {
+    try {
+      console.log("[DEBUG] About to insert connection into MongoDB:", connection);
+      
+      // Add creation timestamp if not provided
+      const connectionWithTimestamp = {
+        ...connection,
+        createdAt: connection.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Ensure IDs are strings for consistency
+      const normalizedConnection = {
+        ...connectionWithTimestamp,
+        fromUserId: connectionWithTimestamp.fromUserId.toString(),
+        toUserId: connectionWithTimestamp.toUserId.toString()
+      };
+      
+      const result = await db.collection('connections').insertOne(normalizedConnection);
+      console.log("[DEBUG] MongoDB insert result:", result);
+      
+      if (!result.insertedId) {
+        console.error("[DEBUG] Failed to insert connection - no insertedId returned");
+        throw new Error('Failed to create connection - no insertedId returned');
+      }
+      
+      const insertedConnection = { 
+        ...normalizedConnection, 
+        id: result.insertedId.toString() 
+      } as Connection;
+      
+      console.log("[DEBUG] Connection successfully created:", insertedConnection);
+      return insertedConnection;
+    } catch (error) {
+      console.error("[DEBUG] Error in createConnection:", error);
+      throw error;
+    }
+  }
+
+  // Get a connection by ID
+  async getConnection(connectionId: number | string): Promise<Connection | null> {
+    try {
+      console.log("[storage] Getting connection with ID:", connectionId, "Type:", typeof connectionId);
+      
+      let query = {};
+      // If it looks like an ObjectId, convert it
+      if (typeof connectionId === 'string' && connectionId.match(/^[0-9a-fA-F]{24}$/)) {
+        query = { _id: new ObjectId(connectionId) };
+      } else {
+        // Try with the raw ID (could be a numeric ID or another string format)
+        query = { _id: connectionId };
+      }
+      
+      const connection = await db.collection('connections').findOne(query);
+      console.log("[storage] Connection found:", connection ? "Yes" : "No");
+      
+      if (!connection) return null;
+      
+      const { _id, ...rest } = connection;
+      
+      // Convert MongoDB document to Connection type
+      const connectionData: Connection = { 
+        ...rest,
+        id: _id.toString(),
+        fromUserId: rest.fromUserId.toString(),
+        toUserId: rest.toUserId.toString()
+      };
+      
+      // Add user fields to connection object manually
+      const connectionWithUsers: any = { ...connectionData };
+      
+      try {
+        // Get the fromUser details
+        const fromUser = await this.getUser(connectionData.fromUserId);
+        if (fromUser) {
+          // Remove password for security
+          const { password, ...fromUserSafe } = fromUser;
+          connectionWithUsers.fromUser = fromUserSafe;
+        }
+        
+        // Get the toUser details
+        const toUser = await this.getUser(connectionData.toUserId);
+        if (toUser) {
+          // Remove password for security
+          const { password, ...toUserSafe } = toUser;
+          connectionWithUsers.toUser = toUserSafe;
+        }
+      } catch (userError) {
+        console.error("[storage] Error getting user details for connection:", userError);
+        // Continue even if we can't get user details
+      }
+      
+      return connectionWithUsers as Connection;
+    } catch (error) {
+      console.error("[storage] Error getting connection:", error);
+      return null;
+    }
+  }
+  
+  async updateConnectionStatus(id: string | number, status: string): Promise<Connection | undefined> {
+    try {
+      console.log("[storage] Updating connection status:", { id, status, idType: typeof id });
+      
+      // Try multiple approaches to find the connection
+      let connection;
+      
+      // 1. First try as a MongoDB ObjectId (most common case)
+      if (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) {
+        try {
+          console.log("[storage] Trying with ObjectId:", id);
+          const objectId = new ObjectId(id);
+          const result = await db.collection('connections').findOneAndUpdate(
+            { _id: objectId },
+            { $set: { status, updatedAt: new Date().toISOString() } },
+            { returnDocument: 'after' }
+          );
+          if (result && result.value) {
+            console.log("[storage] Found and updated connection with ObjectId");
+            connection = result.value;
+          }
+        } catch (error) {
+          console.log("[storage] ObjectId approach failed:", error);
         }
       }
-    }
-    
-    return guides;
-  }
-  
-  async getPlace(id: number): Promise<Place | undefined> {
-    return this.places.get(id);
-  }
-  
-  async getPlaces(category?: string): Promise<Place[]> {
-    const allPlaces = Array.from(this.places.values());
-    
-    if (!category) {
-      return allPlaces;
-    }
-    
-    return allPlaces.filter(place => place.category === category);
-  }
-  
-  async createPlace(place: InsertPlace): Promise<Place> {
-    const id = this.currentPlaceId++;
-    const newPlace: Place = { ...place, id };
-    this.places.set(id, newPlace);
-    return newPlace;
-  }
-  
-  async getItineraries(userId: number): Promise<Itinerary[]> {
-    return Array.from(this.itineraries.values()).filter(
-      (itinerary) => itinerary.userId === userId,
-    );
-  }
-  
-  async getItinerary(id: number): Promise<Itinerary | undefined> {
-    return this.itineraries.get(id);
-  }
-  
-  async createItinerary(itinerary: InsertItinerary): Promise<Itinerary> {
-    const id = this.currentItineraryId++;
-    const newItinerary: Itinerary = { ...itinerary, id, createdAt: new Date() };
-    this.itineraries.set(id, newItinerary);
-    return newItinerary;
-  }
-  
-  async getItineraryPlaces(itineraryId: number): Promise<ItineraryPlace[]> {
-    return Array.from(this.itineraryPlaces.values()).filter(
-      (itineraryPlace) => itineraryPlace.itineraryId === itineraryId,
-    );
-  }
-  
-  async addPlaceToItinerary(itineraryPlace: InsertItineraryPlace): Promise<ItineraryPlace> {
-    const id = this.currentItineraryPlaceId++;
-    const newItineraryPlace: ItineraryPlace = { ...itineraryPlace, id };
-    this.itineraryPlaces.set(id, newItineraryPlace);
-    return newItineraryPlace;
-  }
-  
-  async getBookings(userId: number, type?: string): Promise<Booking[]> {
-    const userBookings = Array.from(this.bookings.values()).filter(
-      (booking) => booking.userId === userId,
-    );
-    
-    if (!type) {
-      return userBookings;
-    }
-    
-    return userBookings.filter(booking => booking.type === type);
-  }
-  
-  async createBooking(booking: InsertBooking): Promise<Booking> {
-    const id = this.currentBookingId++;
-    const newBooking: Booking = { ...booking, id, createdAt: new Date() };
-    this.bookings.set(id, newBooking);
-    return newBooking;
-  }
-  
-  async getConnections(userId: number): Promise<Connection[]> {
-    return Array.from(this.connections.values()).filter(
-      (connection) => connection.fromUserId === userId || connection.toUserId === userId,
-    );
-  }
-  
-  async createConnection(connection: InsertConnection): Promise<Connection> {
-    const id = this.currentConnectionId++;
-    const newConnection: Connection = { 
-      ...connection, 
-      id, 
-      budget: connection.budget || null,
-      createdAt: new Date() 
-    };
-    this.connections.set(id, newConnection);
-    return newConnection;
-  }
-  
-  async updateConnectionStatus(id: number, status: string): Promise<Connection | undefined> {
-    const connection = this.connections.get(id);
-    
-    if (!connection) {
+      
+      // 2. If no result, try with string ID instead of numeric ID
+      if (!connection && typeof id === 'string' && !isNaN(Number(id))) {
+        try {
+          console.log("[storage] Trying with string ID that looks numeric:", id);
+          // Do not convert to Number - this can cause ObjectId type issues
+          const result = await db.collection('connections').findOneAndUpdate(
+            { _id: id },
+            { $set: { status, updatedAt: new Date().toISOString() } },
+            { returnDocument: 'after' }
+          );
+          if (result && result.value) {
+            console.log("[storage] Found and updated connection with string ID");
+            connection = result.value;
+          }
+        } catch (error) {
+          console.log("[storage] String ID approach failed:", error);
+        }
+      }
+      
+      // 3. If still no result, try direct ID match (string comparison)
+      if (!connection) {
+        try {
+          console.log("[storage] Trying with string ID direct match:", id);
+          const result = await db.collection('connections').findOneAndUpdate(
+            { id: id.toString() },
+            { $set: { status, updatedAt: new Date().toISOString() } },
+            { returnDocument: 'after' }
+          );
+          if (result && result.value) {
+            console.log("[storage] Found and updated connection with string ID");
+            connection = result.value;
+          }
+        } catch (error) {
+          console.log("[storage] String ID approach failed:", error);
+        }
+      }
+      
+      // 4. Last resort: Search by ID in ID field (for non-_id stored values)
+      if (!connection) {
+        try {
+          console.log("[storage] Last resort - searching for connection with the ID value:", id);
+          // Get the connection first, then update it
+          const foundConnection = await db.collection('connections').findOne({ id: id.toString() });
+          if (foundConnection) {
+            console.log("[storage] Found connection with id field:", foundConnection);
+            const result = await db.collection('connections').findOneAndUpdate(
+              { _id: foundConnection._id },
+              { $set: { status, updatedAt: new Date().toISOString() } },
+              { returnDocument: 'after' }
+            );
+            if (result && result.value) {
+              console.log("[storage] Successfully updated connection found by id field");
+              connection = result.value;
+            }
+          }
+        } catch (error) {
+          console.log("[storage] Last resort approach failed:", error);
+        }
+      }
+      
+      if (!connection) {
+        console.log("[storage] No connection found with ID:", id);
+        return undefined;
+      }
+      
+      // Connection was found and updated
+      console.log("[storage] Connection updated:", connection);
+      const { _id, ...rest } = connection;
+      
+      // Ensure fromUserId and toUserId are strings for consistency
+      return { 
+        ...rest, 
+        id: _id.toString(),
+        fromUserId: rest.fromUserId?.toString() || "",
+        toUserId: rest.toUserId?.toString() || ""
+      } as Connection;
+    } catch (error) {
+      console.error("[storage] Error updating connection status:", error);
       return undefined;
     }
-    
-    const updatedConnection: Connection = { ...connection, status };
-    this.connections.set(id, updatedConnection);
-    return updatedConnection;
   }
-  
-  async getSavedPlaces(userId: number): Promise<SavedPlace[]> {
-    return Array.from(this.savedPlaces.values()).filter(
-      (savedPlace) => savedPlace.userId === userId,
-    );
+
+  // Saved places methods
+  async getSavedPlaces(userId: string): Promise<SavedPlace[]> {
+    const savedPlaces = await db.collection('savedPlaces').find({ userId }).toArray();
+    return savedPlaces.map(savedPlace => {
+      const { _id, ...rest } = savedPlace;
+      return { ...rest, id: _id.toString() } as SavedPlace;
+    });
   }
-  
-  async savePlaceForUser(savedPlace: InsertSavedPlace): Promise<SavedPlace> {
-    const id = this.currentSavedPlaceId++;
-    const newSavedPlace: SavedPlace = { ...savedPlace, id, createdAt: new Date() };
-    this.savedPlaces.set(id, newSavedPlace);
-    return newSavedPlace;
+
+  async createSavedPlace(savedPlace: Omit<SavedPlace, 'id'>): Promise<SavedPlace> {
+    const result = await db.collection('savedPlaces').insertOne(savedPlace);
+    if (!result.insertedId) throw new Error('Failed to create saved place');
+    return { ...savedPlace, id: result.insertedId.toString() } as SavedPlace;
   }
-  
-  async removeSavedPlace(id: number): Promise<void> {
-    this.savedPlaces.delete(id);
+
+  async deleteSavedPlace(id: string): Promise<boolean> {
+    const result = await db.collection('savedPlaces').deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount === 1;
   }
   
   // Geolocation methods
   async updateUserLocation(userId: number, latitude: string, longitude: string): Promise<User> {
-    const user = this.users.get(userId);
+    const user = await this.getUser(userId.toString());
     
     if (!user) {
       throw new Error(`User with ID ${userId} not found`);
@@ -276,7 +451,7 @@ export class MemStorage implements IStorage {
       lastLocationUpdate: new Date()
     };
     
-    this.users.set(userId, updatedUser);
+    await this.updateUser(userId.toString(), updatedUser);
     return updatedUser;
   }
   
@@ -284,15 +459,15 @@ export class MemStorage implements IStorage {
     const lat = parseFloat(latitude);
     const lon = parseFloat(longitude);
     
-    const guides = Array.from(this.users.values()).filter(user => 
-      user.userType === 'guide' && 
+    // Get all users who are guides
+    const users = await db.collection('users').find({ userType: 'guide' }).toArray();
+    
+    return users.filter(user => 
       user.currentLatitude && 
       user.currentLongitude
-    );
-    
-    return guides.filter(guide => {
-      const guideLat = parseFloat(guide.currentLatitude!);
-      const guideLon = parseFloat(guide.currentLongitude!);
+    ).filter(user => {
+      const guideLat = parseFloat(user.currentLatitude!);
+      const guideLon = parseFloat(user.currentLongitude!);
       
       // Calculate distance using haversine formula
       const R = 6371; // Earth's radius in km
@@ -306,6 +481,9 @@ export class MemStorage implements IStorage {
       const distance = R * c;
       
       return distance <= radiusKm;
+    }).map(user => {
+      const { _id, ...rest } = user;
+      return { ...rest, id: _id.toString() } as User;
     });
   }
   
@@ -313,7 +491,7 @@ export class MemStorage implements IStorage {
     const lat = parseFloat(latitude);
     const lon = parseFloat(longitude);
     
-    let filteredPlaces = Array.from(this.places.values());
+    let filteredPlaces = await this.getPlaces();
     
     if (category) {
       filteredPlaces = filteredPlaces.filter(place => place.category === category);
@@ -338,203 +516,53 @@ export class MemStorage implements IStorage {
     });
   }
   
-  private initializeSampleData() {
-    // Create sample users
-    const user1: User = {
-      id: this.currentUserId++,
-      username: 'aryann',
-      password: 'password123',
-      fullName: 'Aryan Varale',
-      email: 'aaaryaannn@gmail.com',
-      phone: '+919876543210',
-      userType: 'tourist',
-      currentLatitude: '18.9220', // Near Gateway of India, Mumbai
-      currentLongitude: '72.8347',
-      lastLocationUpdate: new Date(),
-      createdAt: new Date()
-    };
-    
-    const user2: User = {
-      id: this.currentUserId++,
-      username: 'johnsmith',
-      password: 'guide123',
-      fullName: 'John Smith',
-      email: 'john@guide.com',
-      phone: '+919876543211',
-      userType: 'guide',
-      currentLatitude: '18.9217', // Near Taj Hotel, Mumbai
-      currentLongitude: '72.8332',
-      lastLocationUpdate: new Date(),
-      createdAt: new Date()
-    };
-    
-    const user3: User = {
-      id: this.currentUserId++,
-      username: 'sarawilson',
-      password: 'guide456',
-      fullName: 'Sara Wilson',
-      email: 'sara@guide.com',
-      phone: '+919876543212',
-      userType: 'guide',
-      currentLatitude: '18.5195', // Near Shaniwar Wada, Pune
-      currentLongitude: '73.8554',
-      lastLocationUpdate: new Date(),
-      createdAt: new Date()
-    };
-    
-    this.users.set(user1.id, user1);
-    this.users.set(user2.id, user2);
-    this.users.set(user3.id, user3);
-    
-    // Create guide profiles
-    const guideProfile1: GuideProfile = {
-      id: this.currentGuideProfileId++,
-      userId: user2.id,
-      location: 'Mumbai',
-      experience: 5,
-      languages: ['English', 'Hindi', 'Marathi'],
-      specialties: ['Historical Sites', 'Cultural Tours'],
-      rating: 4,
-      bio: 'Experienced guide specializing in historical and cultural tours of Maharashtra.'
-    };
-    
-    const guideProfile2: GuideProfile = {
-      id: this.currentGuideProfileId++,
-      userId: user3.id,
-      location: 'Pune',
-      experience: 3,
-      languages: ['English', 'Hindi', 'Marathi'],
-      specialties: ['Adventure Tours', 'Photography Tours'],
-      rating: 4,
-      bio: 'Adventure and photography tour specialist with knowledge of less-traveled paths.'
-    };
-    
-    this.guideProfiles.set(guideProfile1.id, guideProfile1);
-    this.guideProfiles.set(guideProfile2.id, guideProfile2);
-    
-    // Create sample places
-    const places: Place[] = [
-      {
-        id: this.currentPlaceId++,
-        name: 'Gateway of India',
-        description: 'Historic monument in Mumbai overlooking the Arabian Sea.',
-        location: 'Mumbai',
-        category: 'attraction',
-        latitude: '18.9220',
-        longitude: '72.8347',
-        imageUrl: 'https://images.unsplash.com/photo-1587474260584-136574528ed5'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Ajanta Caves',
-        description: 'Ancient rock-cut Buddhist cave monuments dating from the 2nd century BCE.',
-        location: 'Aurangabad',
-        category: 'attraction',
-        latitude: '20.5519',
-        longitude: '75.7033',
-        imageUrl: 'https://images.unsplash.com/photo-1590586767908-99b2d8a7b732'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Ellora Caves',
-        description: 'UNESCO World Heritage site featuring Buddhist, Hindu and Jain monuments.',
-        location: 'Aurangabad',
-        category: 'attraction',
-        latitude: '20.0258',
-        longitude: '75.1795',
-        imageUrl: 'https://images.unsplash.com/photo-1560108878-8145b2a56e9d'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Taj Hotel Mumbai',
-        description: 'Luxury hotel in the heart of Mumbai with stunning architecture.',
-        location: 'Mumbai',
-        category: 'hotel',
-        latitude: '18.9217',
-        longitude: '72.8332',
-        imageUrl: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Elephanta Caves',
-        description: 'Ancient cave temples dedicated to Lord Shiva on Elephanta Island.',
-        location: 'Mumbai',
-        category: 'attraction',
-        latitude: '18.9633',
-        longitude: '72.9315',
-        imageUrl: 'https://images.unsplash.com/photo-1625127251217-01a3e901985c'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Shaniwar Wada',
-        description: 'Historical fortification in the city of Pune.',
-        location: 'Pune',
-        category: 'attraction',
-        latitude: '18.5195',
-        longitude: '73.8554',
-        imageUrl: 'https://images.unsplash.com/photo-1623164938411-08c04aa33564'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Aga Khan Palace',
-        description: 'Historical building in Pune, associated with Indian freedom movement.',
-        location: 'Pune',
-        category: 'attraction',
-        latitude: '18.5476',
-        longitude: '73.9009',
-        imageUrl: 'https://images.unsplash.com/photo-1593269258530-bd0cc637cbb4'
-      },
-      {
-        id: this.currentPlaceId++,
-        name: 'Shirdi Sai Baba Temple',
-        description: 'Temple dedicated to Sai Baba, considered a saint by his devotees.',
-        location: 'Shirdi',
-        category: 'attraction',
-        latitude: '19.7669',
-        longitude: '74.4761',
-        imageUrl: 'https://images.unsplash.com/photo-1612280413587-326b28e62a23'
+  // Messages methods
+  async getMessagesByConnectionId(connectionId: string): Promise<any[]> {
+    try {
+      console.log("[storage] Getting messages for connection:", connectionId);
+      
+      // Find messages for this connection
+      const messages = await db.collection('messages').find({ connectionId }).toArray();
+      console.log("[storage] Found", messages.length, "messages for connection", connectionId);
+      
+      // Map the messages to our expected format
+      return messages.map(message => {
+        const { _id, ...rest } = message;
+        return { ...rest, id: _id.toString() };
+      });
+    } catch (error) {
+      console.error("[storage] Error getting messages for connection:", error);
+      return [];
+    }
+  }
+
+  async createMessage(message: any): Promise<any> {
+    try {
+      console.log("[storage] Creating new message:", {
+        connectionId: message.connectionId,
+        sender: message.senderId,
+        recipient: message.recipientId,
+        contentLength: message.content.length
+      });
+      
+      // Insert the message
+      const result = await db.collection('messages').insertOne(message);
+      
+      if (!result.insertedId) {
+        throw new Error("Failed to insert message");
       }
-    ];
-    
-    places.forEach(place => {
-      this.places.set(place.id, place);
-    });
-    
-    // Create sample connections
-    const connection1: Connection = {
-      id: this.currentConnectionId++,
-      fromUserId: user1.id,
-      toUserId: user2.id,
-      status: 'accepted',
-      message: "Hello, I'd like to book a tour of Mumbai with you.",
-      tripDetails: "I'll be in Mumbai for 3 days from April 5-8th.",
-      budget: "5000 INR",
-      createdAt: new Date()
-    };
-    
-    const connection2: Connection = {
-      id: this.currentConnectionId++,
-      fromUserId: user1.id,
-      toUserId: user3.id,
-      status: 'accepted',
-      message: "Looking for a good guide in Pune area.",
-      tripDetails: "Planning to visit Pune next month for 5 days.",
-      budget: "3000 INR",
-      createdAt: new Date()
-    };
-    
-    this.connections.set(connection1.id, connection1);
-    this.connections.set(connection2.id, connection2);
+      
+      // Return the created message with the ID
+      const createdMessage = { ...message, id: result.insertedId.toString() };
+      console.log("[storage] Message created successfully with ID:", createdMessage.id);
+      
+      return createdMessage;
+    } catch (error) {
+      console.error("[storage] Error creating message:", error);
+      throw error;
+    }
   }
 }
 
-// Import PostgreSQL storage implementation
-import { PostgresStorage, initializeDatabase } from './database';
-
-// Initialize the database and export the PostgreSQL storage instead of MemStorage
-export const storage = new PostgresStorage();
-
-// Initialize the database tables and seed data if needed
-initializeDatabase()
-  .then(() => console.log('Database ready'))
-  .catch(err => console.error('Database initialization error:', err));
+// Export the MongoDB storage implementation
+export const storage = new MongoStorage();

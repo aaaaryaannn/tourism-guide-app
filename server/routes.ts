@@ -1,78 +1,349 @@
-
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.ts";
+import { db } from "./db.ts";
 import { 
-  insertUserSchema, 
-  insertGuideProfileSchema, 
-  insertPlaceSchema, 
-  insertItinerarySchema,
-  insertItineraryPlaceSchema,
-  insertBookingSchema,
-  insertConnectionSchema,
-  insertSavedPlaceSchema 
-} from "@shared/schema";
+  userSchema,
+  guideProfileSchema,
+  placeSchema,
+  itinerarySchema,
+  itineraryPlaceSchema,
+  bookingSchema,
+  connectionSchema,
+  savedPlaceSchema
+} from "../shared/schema.ts";
 import { z } from 'zod';
-import { ZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error";
 import { Mistral } from '@mistralai/mistralai';
+import { Router } from "express";
+import { ObjectId } from "mongodb";
 
 const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY || 'jRuxrXPaXaoCLMEarL3mJQH9GaGDjuZJ' });
 
+const router = Router();
+
+// Helper function to calculate distance between two coordinates in kilometers using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Helper function to generate random coordinates near a given location
+function generateRandomLocationNearby(baseLat: number, baseLng: number, maxDistanceKm: number = 5): { lat: number, lng: number } {
+  // Convert max distance from km to degrees (approximate)
+  const maxLat = maxDistanceKm / 111.32; // 1 degree latitude is approx 111.32 km
+  const maxLng = maxDistanceKm / (111.32 * Math.cos(baseLat * Math.PI / 180)); // Longitude degrees vary by latitude
+  
+  // Generate random offsets
+  const latOffset = (Math.random() * 2 - 1) * maxLat;
+  const lngOffset = (Math.random() * 2 - 1) * maxLng;
+  
+  return {
+    lat: baseLat + latOffset,
+    lng: baseLng + lngOffset
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add CORS middleware
+  app.use((req, res, next) => {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    // Set content type for all responses to JSON
+    res.type('json');
+    
+    next();
+  });
+
+  // Nearby guides endpoint - returns 4-5 guides near the tourist's location
+  app.get("/api/nearby/guides", async (req, res) => {
+    try {
+      // Get latitude and longitude from query parameters
+      const userLat = parseFloat(req.query.latitude as string);
+      const userLng = parseFloat(req.query.longitude as string);
+      
+      // Validate coordinates
+      if (isNaN(userLat) || isNaN(userLng)) {
+        return res.status(400).json({ message: "Invalid coordinates provided" });
+      }
+      
+      // Fetch all guides from the database
+      const guides = await db.collection('users').find({ userType: "guide" }).toArray();
+      
+      if (!guides || guides.length === 0) {
+        return res.status(404).json({ message: "No guides found" });
+      }
+      
+      // Convert MongoDB _id to id for each guide and prepare for frontend
+      const formattedGuides = guides.map(guide => {
+        // Generate nearby random location for this guide around the user's location
+        const randomLocation = generateRandomLocationNearby(userLat, userLng);
+        
+        return {
+          ...guide,
+          id: guide._id.toString(),
+          // Update location fields with nearby random coordinates
+          currentLatitude: randomLocation.lat.toString(),
+          currentLongitude: randomLocation.lng.toString(),
+          // Calculate distance from user
+          distance: calculateDistance(userLat, userLng, randomLocation.lat, randomLocation.lng),
+          // Remove MongoDB _id and password for security
+          _id: undefined,
+          password: undefined
+        };
+      });
+      
+      // Get guide profiles
+      const guideIds = formattedGuides.map(g => g.id);
+      const guideProfiles = await db.collection('guideProfiles').find({
+        userId: { $in: guideIds }
+      }).toArray();
+      
+      // Create a map of profiles by userId for quick lookup
+      const profileMap = new Map();
+      guideProfiles.forEach(profile => {
+        profileMap.set(profile.userId, {
+          ...profile,
+          id: profile._id.toString(),
+          _id: undefined
+        });
+      });
+      
+      // Add guide profiles to guides
+      const guidesWithProfiles = formattedGuides.map(guide => ({
+        ...guide,
+        guideProfile: profileMap.get(guide.id) || null
+      }));
+      
+      // Sort guides by distance
+      guidesWithProfiles.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+      
+      // Return 4-5 random guides (random number between 4-5)
+      const numGuides = Math.floor(Math.random() * 2) + 4; // 4 or 5
+      const nearbyGuides = guidesWithProfiles.slice(0, Math.min(numGuides, guidesWithProfiles.length));
+      
+      return res.json(nearbyGuides);
+    } catch (error) {
+      console.error("Error fetching nearby guides:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-
-      const existingUser = await storage.getUserByUsername(userData.username);
+      console.log("============ REGISTRATION REQUEST ============");
+      console.log("Registration request body:", JSON.stringify(req.body, null, 2));
+      
+      // Add defaults and sanitize data
+      const sanitizedData = {
+        ...req.body,
+        // Ensure these fields exist with correct types
+        username: req.body.username || '',
+        email: req.body.email || '',
+        password: req.body.password || '',
+        fullName: req.body.fullName || '',
+        phone: req.body.phone || '',
+        userType: req.body.userType || 'tourist',
+      };
+      
+      console.log("Sanitized data:", JSON.stringify(sanitizedData, null, 2));
+      
+      // Check if we're receiving the expected fields
+      if (!sanitizedData.username || !sanitizedData.email || !sanitizedData.password) {
+        return res.status(400).json({ 
+          message: "Missing required fields", 
+          received: Object.keys(sanitizedData) 
+        });
+      }
+      
+      try {
+        // Use loose schema validation and strip unknown properties
+        const userData = userSchema.omit({ id: true, createdAt: true }).parse(sanitizedData);
+        console.log("Parsed user data:", JSON.stringify(userData, null, 2));
+        
+        try {
+          // Check for existing user by email instead of username
+          const existingUser = await storage.getUserByEmail(userData.email);
+          console.log("Existing user check:", existingUser ? "User exists" : "User doesn't exist");
+          
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+            return res.status(400).json({ message: "Email already exists" });
       }
 
+          try {
+            console.log("Creating user with data:", JSON.stringify(userData, null, 2));
       const user = await storage.createUser(userData);
+            console.log("User created with ID:", user.id);
 
       // If user is a guide, create guide profile
       if (userData.userType === "guide" && req.body.guideProfile) {
-        const guideProfileData = insertGuideProfileSchema.parse({
+              try {
+                console.log("Creating guide profile for user:", user.id);
+                const guideProfileData = guideProfileSchema.omit({ id: true }).parse({
           ...req.body.guideProfile,
           userId: user.id
         });
 
         await storage.createGuideProfile(guideProfileData);
+                console.log("Guide profile created");
+              } catch (guideProfileError) {
+                console.error("Error creating guide profile:", guideProfileError);
+                // Continue since the user was already created
+              }
       }
 
       // Don't return password
       const { password, ...userWithoutPassword } = user;
 
+            console.log("Registration successful");
+            console.log("============ END REGISTRATION REQUEST ============");
       return res.status(201).json(userWithoutPassword);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+          } catch (createUserError) {
+            console.error("Error creating user:", createUserError);
+            return res.status(500).json({ message: "Error creating user", error: String(createUserError) });
+          }
+        } catch (getUserError) {
+          console.error("Error checking for existing user:", getUserError);
+          return res.status(500).json({ message: "Error checking for existing user", error: String(getUserError) });
+        }
+      } catch (parseError) {
+        console.error("Error parsing user data:", parseError);
+        if (parseError instanceof z.ZodError) {
+          console.error("Validation errors:", JSON.stringify(parseError.errors, null, 2));
+          return res.status(400).json({ message: "Invalid data", errors: parseError.errors });
+        }
+        return res.status(400).json({ message: "Error parsing user data", error: String(parseError) });
       }
-      return res.status(500).json({ message: "Server error" });
+    } catch (outerError) {
+      console.error("Unhandled registration error:", outerError);
+      console.error("============ END REGISTRATION REQUEST WITH ERROR ============");
+      return res.status(500).json({ message: "Server error", error: String(outerError) });
+    }
+  });
+
+  // User location update endpoint
+  app.post("/api/user/location", async (req, res) => {
+    try {
+      const { userId, latitude, longitude } = req.body;
+      
+      if (!userId || !latitude || !longitude) {
+        return res.status(400).json({ message: "User ID, latitude, and longitude are required" });
+      }
+      
+      // Validate coordinates
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ message: "Invalid coordinates" });
+      }
+      
+      // Update user's location in the database
+      const result = await db.collection('users').updateOne(
+        { _id: new ObjectId(userId) },
+        { 
+          $set: { 
+            currentLatitude: latitude,
+            currentLongitude: longitude,
+            lastLocationUpdate: new Date()
+          } 
+        }
+      );
+      
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.json({ message: "Location updated successfully" });
+    } catch (error) {
+      console.error("Error updating user location:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      console.log("============ LOGIN REQUEST ============");
+      console.log("Login request body:", JSON.stringify(req.body, null, 2));
+      
+      // Extract credentials from request body
+      const { username, password, email } = req.body;
+      
+      // Check if required fields are provided
+      if ((!username && !email) || !password) {
+        console.error("Missing required fields");
+        return res.status(400).json({ message: "Email/username and password are required" });
       }
-
-      const user = await storage.getUserByUsername(username);
-
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid username or password" });
+      
+      let user = null;
+      
+      // First try to find by username if provided
+      if (username) {
+        console.log("Looking up user by username:", username);
+        user = await db.collection('users').findOne({ username });
       }
+      
+      // If no user found and email provided, try by email
+      if (!user && email) {
+        console.log("Looking up user by email:", email);
+        user = await db.collection('users').findOne({ email });
+      }
+      
+      // Check if user was found
+      if (!user) {
+        console.error("User not found");
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Convert MongoDB _id to id and ensure it's a string
+      const userId = user._id.toString();
+      console.log("Converted user ID:", userId);
+      
+      // Create user object with string ID while preserving all properties
+      const userWithStringId = userSchema.parse({ 
+        ...user, 
+        id: userId,
+        _id: undefined // Remove MongoDB _id
+      });
+      
+      console.log("User found:", userWithStringId.username);
+      
+      // Verify password
+      if (userWithStringId.password !== password) {
+        console.error(`Invalid password. Expected: ${userWithStringId.password}, Received: ${password}`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Create response without password
+      const { password: _, ...userWithoutPassword } = userWithStringId;
 
-      // Don't return password
-      const { password: _, ...userWithoutPassword } = user;
-
+      console.log("Login successful for user:", userWithoutPassword.username);
+      console.log("============ END LOGIN REQUEST ============");
+      
+      // Return user data in the format expected by client
       return res.json(userWithoutPassword);
+      
     } catch (error) {
-      return res.status(500).json({ message: "Server error" });
+      console.error("Login error:", error);
+      console.error("============ END LOGIN REQUEST WITH ERROR ============");
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 
@@ -85,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId.toString());
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -104,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/trips/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const trips = await storage.getItineraries(userId);
+      const trips = await storage.getItinerary(userId.toString());
       return res.json(trips);
     } catch (error) {
       console.error("Error fetching trips:", error);
@@ -132,26 +403,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Guide routes
   app.get("/api/guides", async (req, res) => {
     try {
-      // Get all users
-      const allUsers = await storage.getAvailableGuides();
+      console.log("Fetching guides...");
+      // Get all users with userType 'guide' directly from MongoDB
+      const guides = await db.collection('users').find({ userType: 'guide' }).toArray();
       
-      // Filter actual guides with profiles
-      const guides = allUsers.filter(user => 
-        user.userType === 'guide' && 
-        user.guideProfile
-      );
+      console.log(`Found ${guides.length} guides in users collection`);
       
-      // Map to remove sensitive data
-      const guidesWithoutSensitiveData = guides.map(guide => {
-        const { password, ...guideWithoutPassword } = guide;
-        return guideWithoutPassword;
+      // Get all guide profiles in one query
+      const guideIds = guides.map(guide => guide._id.toString());
+      const guideProfiles = await db.collection('guideProfiles').find({
+        userId: { $in: guideIds }
+      }).toArray();
+      
+      console.log(`Found ${guideProfiles.length} guide profiles`);
+      
+      // Create a map of profiles by userId for quick lookup
+      const profileMap = new Map();
+      guideProfiles.forEach(profile => {
+        const { _id, ...profileWithoutId } = profile;
+        profileMap.set(profile.userId, {
+          ...profileWithoutId,
+          id: _id.toString()
+        });
       });
-
-      console.log(`Found ${guidesWithoutSensitiveData.length} guides`);
-      return res.json(guidesWithoutSensitiveData);
+      
+      // Map the guides to include guide profiles
+      const guidesWithProfiles = guides.map(guide => {
+        // Convert MongoDB _id to id and remove sensitive information
+        const { _id, password, ...guideWithoutPassword } = guide;
+        const guideId = _id.toString();
+        
+        // Get the guide profile from the map
+        const guideProfile = profileMap.get(guideId);
+        
+        return {
+          ...guideWithoutPassword,
+          id: guideId,
+          guideProfile: guideProfile || null
+        };
+      });
+      
+      console.log(`Returning ${guidesWithProfiles.length} guides with profiles`);
+      return res.json(guidesWithProfiles);
     } catch (error) {
       console.error("Error fetching guides:", error);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 
@@ -163,13 +459,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId.toString());
 
       if (!user || user.userType !== "guide") {
         return res.status(404).json({ message: "Guide not found" });
       }
 
-      const guideProfile = await storage.getGuideProfile(userId);
+      const guideProfile = await storage.getGuideProfile(userId.toString());
 
       if (!guideProfile) {
         return res.status(404).json({ message: "Guide profile not found" });
@@ -191,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/places", async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
-      const places = await storage.getPlaces(category);
+      const places = await storage.getPlaces();
       return res.json(places);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
@@ -206,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid place ID" });
       }
 
-      const place = await storage.getPlace(placeId);
+      const place = await storage.getPlace(placeId.toString());
 
       if (!place) {
         return res.status(404).json({ message: "Place not found" });
@@ -220,8 +516,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/places", async (req, res) => {
     try {
-      const placeData = insertPlaceSchema.parse(req.body);
-      const place = await storage.createPlace(placeData);
+      const placeData = placeSchema.parse(req.body);
+      const { id, ...placeWithoutId } = placeData;
+      const place = await storage.createPlace(placeWithoutId);
       return res.status(201).json(place);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -231,29 +528,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this endpoint after the places routes
+  app.post("/api/places/:id/wikimedia", async (req, res) => {
+    try {
+      const placeId = req.params.id;
+      const {
+        wikimediaThumbnailUrl,
+        wikimediaDescription,
+        wikimediaArtist,
+        wikimediaAttributionUrl,
+        wikimediaLicense,
+        wikimediaLicenseUrl
+      } = req.body;
+      
+      if (!placeId) {
+        return res.status(400).json({ message: "Place ID is required" });
+      }
+      
+      // Update the place with Wikimedia information
+      await db.collection('places').updateOne(
+        { _id: new ObjectId(placeId) },
+        { 
+          $set: { 
+            wikimediaThumbnailUrl,
+            wikimediaDescription,
+            wikimediaArtist,
+            wikimediaAttributionUrl,
+            wikimediaLicense,
+            wikimediaLicenseUrl
+          },
+          // Set imageUrl only if it doesn't exist
+          $setOnInsert: {
+            imageUrl: wikimediaThumbnailUrl
+          }
+        },
+        { upsert: true }
+      );
+      
+      // Get the updated place
+      const updatedPlace = await db.collection('places').findOne({ _id: new ObjectId(placeId) });
+      
+      if (!updatedPlace) {
+        return res.status(404).json({ message: "Place not found after update" });
+      }
+      
+      // Convert MongoDB _id to id for response
+      const { _id, ...placeData } = updatedPlace;
+      
+      return res.json({
+        ...placeData,
+        id: _id.toString()
+      });
+    } catch (error) {
+      console.error("Error updating place with Wikimedia data:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+
   // Itinerary routes
   app.get("/api/users/:userId/itineraries", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
+      console.log("Fetching itineraries for user ID:", userId);
 
-      if (isNaN(userId)) {
+      if (!userId) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
-      const itineraries = await storage.getItineraries(userId);
-      return res.json(itineraries);
+      // Search in MongoDB by the userId field in itineraries
+      const itineraries = await db.collection('itineraries').find({ userId }).toArray();
+      console.log(`Found ${itineraries.length} itineraries for user ${userId}`);
+      
+      // Map MongoDB documents to expected format with id field
+      const formattedItineraries = itineraries.map(itinerary => {
+        const { _id, ...rest } = itinerary;
+        return {
+          id: _id.toString(),
+          ...rest
+        };
+      });
+
+      return res.json(formattedItineraries);
     } catch (error) {
-      return res.status(500).json({ message: "Server error" });
+      console.error("Error fetching itineraries:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 
   app.post("/api/itineraries", async (req, res) => {
     try {
-      const itineraryData = insertItinerarySchema.parse(req.body);
+      console.log("Creating itinerary with data:", JSON.stringify(req.body, null, 2));
+      const itineraryData = itinerarySchema.parse(req.body);
+      console.log("Parsed itinerary data:", JSON.stringify(itineraryData, null, 2));
       const itinerary = await storage.createItinerary(itineraryData);
+      console.log("Created itinerary:", JSON.stringify(itinerary, null, 2));
       return res.status(201).json(itinerary);
     } catch (error) {
+      console.error("Error creating itinerary:", error);
       if (error instanceof z.ZodError) {
+        console.error("Validation errors:", JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       return res.status(500).json({ message: "Server error" });
@@ -268,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid itinerary ID" });
       }
 
-      const itineraryPlaces = await storage.getItineraryPlaces(itineraryId);
+      const itineraryPlaces = await storage.getItineraryPlaces(itineraryId.toString());
 
       // Get full place details for each itinerary place
       const placesWithDetails = await Promise.all(
@@ -295,12 +668,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid itinerary ID" });
       }
 
-      const itineraryPlaceData = insertItineraryPlaceSchema.parse({
+      const itineraryPlaceData = itineraryPlaceSchema.parse({
         ...req.body,
         itineraryId
       });
 
-      const itineraryPlace = await storage.addPlaceToItinerary(itineraryPlaceData);
+      const itineraryPlace = await storage.createItineraryPlace(itineraryPlaceData);
       return res.status(201).json(itineraryPlace);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -311,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Booking routes
-  app.get("/api/users/:userId/bookings", async (req, res) => {
+  app.get("/api/bookings/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const type = req.query.type as string | undefined;
@@ -320,8 +693,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
-      const bookings = await storage.getBookings(userId, type);
-      return res.json(bookings);
+      const booking = await storage.getBooking(userId.toString());
+      return res.json(booking);
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
@@ -329,355 +702,240 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bookings", async (req, res) => {
     try {
-      const bookingData = insertBookingSchema.parse(req.body);
+      const bookingData = bookingSchema.parse(req.body);
       const booking = await storage.createBooking(bookingData);
-      return res.status(201).json(booking);
+      res.json(booking);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      return res.status(500).json({ message: "Server error" });
+      console.error("Error creating booking:", error);
+      res.status(400).json({ error: "Invalid booking data" });
     }
   });
 
   // Connection routes
   app.get("/api/users/:userId/connections", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const connections = await storage.getConnections(userId);
-
-      // Get full user details for each connection
-      const connectionsWithDetails = await Promise.all(
-        connections.map(async (connection) => {
-          const fromUser = await storage.getUser(connection.fromUserId);
-          const toUser = await storage.getUser(connection.toUserId);
-
-          // Determine which user is a guide (if any)
-          const guideUser = fromUser?.userType === 'guide' ? fromUser : 
-                          toUser?.userType === 'guide' ? toUser : null;
-
-          const guideProfile = guideUser ? await storage.getGuideProfile(guideUser.id) : undefined;
-
-          // Remove passwords
-          const fromUserWithoutPassword = fromUser ? 
-            { ...fromUser, password: undefined } : 
-            undefined;
-
-          const toUserWithoutPassword = toUser ? 
-            { ...toUser, password: undefined } : 
-            undefined;
-
-          return {
-            ...connection,
-            fromUser: fromUserWithoutPassword,
-            toUser: toUserWithoutPassword,
-            guideProfile
-          };
-        })
-      );
-
-      return res.json(connectionsWithDetails);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.patch("/api/connections/:id/status", async (req, res) => {
-    try {
-      const connectionId = parseInt(req.params.id);
-      const { status } = req.body;
-
-      if (isNaN(connectionId)) {
-        return res.status(400).json({ message: "Invalid connection ID" });
-      }
-
-      if (!status || !['pending', 'accepted', 'rejected'].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
-      }
-
-      const updatedConnection = await storage.updateConnectionStatus(connectionId, status);
-
-      if (!updatedConnection) {
-        return res.status(404).json({ message: "Connection not found" });
-      }
-
-      return res.json(updatedConnection);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Saved places routes
-  app.get("/api/users/:userId/saved-places", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const savedPlaces = await storage.getSavedPlaces(userId);
-
-      // Get full place details for each saved place
-      const placesWithDetails = await Promise.all(
-        savedPlaces.map(async (savedPlace) => {
-          const place = await storage.getPlace(savedPlace.placeId);
-          return {
-            ...savedPlace,
-            place
-          };
-        })
-      );
-
-      return res.json(placesWithDetails);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.post("/api/saved-places", async (req, res) => {
-    try {
-      const savedPlaceData = insertSavedPlaceSchema.parse(req.body);
-      const savedPlace = await storage.savePlaceForUser(savedPlaceData);
-      return res.status(201).json(savedPlace);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.delete("/api/saved-places/:id", async (req, res) => {
-    try {
-      const savedPlaceId = parseInt(req.params.id);
-
-      if (isNaN(savedPlaceId)) {
-        return res.status(400).json({ message: "Invalid saved place ID" });
-      }
-
-      await storage.removeSavedPlace(savedPlaceId);
-      return res.status(204).send();
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Connection management routes
-  app.post("/api/connections", async (req, res) => {
-    try {
-      const { fromUserId, toUserId, status, message, tripDetails, budget } = req.body;
-
-      if (!fromUserId || !toUserId || !status || !message) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Prevent self-connections
-      if (fromUserId === toUserId) {
-        return res.status(400).json({ message: "Cannot connect with yourself" });
-      }
-
-      // Verify the guide exists
-      const guide = await storage.getUser(toUserId);
-      if (!guide || guide.userType !== 'guide') {
-        return res.status(400).json({ message: "Invalid guide user" });
-      }
-
-      const connection = await storage.createConnection({
-        fromUserId,
-        toUserId,
-        status,
-        message,
-        tripDetails: tripDetails || 'No specific details provided',
-        budget: budget || 'Not specified'
-      });
-
-      // Get user details for response
-      const fromUser = await storage.getUser(fromUserId);
-      const toUser = await storage.getUser(toUserId);
-
-      const { password: _, ...connectionData } = connection;
-      const { password: __, ...fromUserData } = fromUser;
-      const { password: ___, ...toUserData } = toUser;
-
-      return res.status(201).json({
-        ...connectionData,
-        fromUser: fromUserData,
-        toUser: toUserData
-      });
-    } catch (error) {
-      console.error("Error creating connection:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.get("/api/connections", async (req, res) => {
-    try {
-      const { userId } = req.query;
+      const { userId } = req.params;
+      const rawId = req.query.raw; // For debugging
 
       if (!userId) {
         return res.status(400).json({ message: "User ID is required" });
       }
 
-      const connections = await storage.getConnections(parseInt(userId as string));
-
-      // Get user details for each connection
-      const connectionsWithUsers = await Promise.all(
-        connections.map(async (connection) => {
-          const fromUser = await storage.getUser(connection.fromUserId);
-          const toUser = await storage.getUser(connection.toUserId);
-
-          const { password: fromPassword, ...fromUserWithoutPassword } = fromUser || {};
-          const { password: toPassword, ...toUserWithoutPassword } = toUser || {};
-
-          return {
-            ...connection,
-            fromUser: fromUserWithoutPassword,
-            toUser: toUserWithoutPassword
-          };
-        })
-      );
-
-      return res.json(connectionsWithUsers);
+      console.log(`[API] Fetching connections for user ${userId}, raw param: ${rawId || 'none'}`);
+      console.log(`[API] User ID type: ${typeof userId}`);
+      
+      // Get all connections for this user
+      const connections = await storage.getConnections(userId as string);
+      console.log(`[API] Found ${connections.length} connections for user ${userId}`);
+      
+      // Debug output for each connection
+      if (connections.length > 0) {
+        connections.forEach((connection, index) => {
+          console.log(`Connection ${index + 1}:`, connection);
+        });
+      }
+      
+      return res.json(connections);
     } catch (error) {
-      console.error("Error getting connections:", error);
-      return res.status(500).json({ message: "Server error" });
+      console.error("Error fetching connections:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 
+  // Create new connection
+  app.post("/api/connections", async (req, res) => {
+    try {
+      console.log("[API] Creating new connection with data:", req.body);
+      
+      // Validate request body against schema
+      const connectionData = connectionSchema.omit({ id: true }).parse(req.body);
+      console.log("[API] Validated connection data:", connectionData);
+      
+      // Create the connection
+      const connection = await storage.createConnection(connectionData);
+      console.log("[API] Connection created:", connection);
+      
+      // Ensure we're sending a JSON response
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(201).json(connection);
+    } catch (error) {
+      console.error("[API] Error creating connection:", error);
+      
+      // Ensure we're sending a JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid connection data", 
+          errors: fromZodError(error).message 
+        });
+      }
+      
+      return res.status(500).json({ 
+        message: "Failed to create connection", 
+        error: String(error) 
+      });
+    }
+  });
+
+  // Update connection status
   app.patch("/api/connections/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
-
-      if (!id || !status) {
-        return res.status(400).json({ message: "Connection ID and status are required" });
+      const { status, userId } = req.body;
+      
+      console.log(`[API] Updating connection ${id} status to ${status}`, {
+        params: req.params,
+        body: req.body,
+        headers: req.headers
+      });
+      
+      // Validate status
+      if (!['accepted', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status. Must be 'accepted' or 'rejected'" });
       }
-
-      const connection = await storage.updateConnectionStatus(parseInt(id), status);
-
+      
+      // Get the connection first to validate the update
+      const connection = await db.collection('connections').findOne({ 
+        $or: [
+          { _id: new ObjectId(id) },
+          { id: id }
+        ]
+      });
+      
       if (!connection) {
+        console.log(`[API] Connection not found with id ${id}`);
         return res.status(404).json({ message: "Connection not found" });
       }
-
-      return res.json(connection);
-    } catch (error) {
-      console.error("Error updating connection:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Geolocation routes
-  app.post("/api/user/location", async (req, res) => {
-    try {
-      const { userId, latitude, longitude } = req.body;
-
-      if (!userId || !latitude || !longitude) {
-        return res.status(400).json({ message: "User ID, latitude, and longitude are required" });
-      }
-
-      const parsedUserId = parseInt(userId);
-
-      if (isNaN(parsedUserId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const user = await storage.updateUserLocation(parsedUserId, latitude, longitude);
-
-      // Don't return password
-      const { password, ...userWithoutPassword } = user;
-
-      return res.json(userWithoutPassword);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.get("/api/nearby/guides", async (req, res) => {
-    try {
-      const { latitude, longitude, radius } = req.query;
-
-      if (!latitude || !longitude) {
-        return res.status(400).json({ message: "Latitude and longitude are required" });
-      }
-
-      const radiusKm = radius ? parseInt(radius as string) : undefined;
-
-      const guides = await storage.getNearbyGuides(
-        latitude as string, 
-        longitude as string, 
-        radiusKm
-      );
-
-      // Map to remove passwords
-      const guidesWithoutPasswords = await Promise.all(
-        guides.map(async (guide) => {
-          const guideProfile = await storage.getGuideProfile(guide.id);
-          const { password, ...userWithoutPassword } = guide;
-          return { 
-            ...userWithoutPassword, 
-            guideProfile 
-          };
-        })
-      );
-
-      return res.json(guidesWithoutPasswords);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  app.get("/api/nearby/places", async (req, res) => {
-    try {
-      const { latitude, longitude, radius, category } = req.query;
-
-      if (!latitude || !longitude) {
-        return res.status(400).json({ message: "Latitude and longitude are required" });
-      }
-
-      const radiusKm = radius ? parseInt(radius as string) : undefined;
-
-      const places = await storage.getNearbyPlaces(
-        latitude as string, 
-        longitude as string, 
-        radiusKm,
-        category as string | undefined
-      );
-
-      return res.json(places);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Chat endpoint
-  app.post('/api/chat', async (req, res) => {
-    try {
-      const { message } = req.body;
       
-      const chatResponse = await mistral.chat.complete({
-        model: 'mistral-large-latest',
-        messages: [{
-          role: 'system',
-          content: 'You are a knowledgeable Maharashtra tour guide assistant. Help tourists with information about places, culture, travel tips, and local experiences in Maharashtra.'
-        }, {
-          role: 'user',
-          content: message
-        }]
+      console.log(`[API] Found connection:`, connection);
+      
+      // Verify that the user has permission to update this connection
+      if (userId && connection.toUserId.toString() !== userId.toString()) {
+        console.log(`[API] User ${userId} not authorized to update connection ${id}`);
+        return res.status(403).json({ message: "Not authorized to update this connection" });
+      }
+      
+      // Update the connection status
+      const result = await db.collection('connections').updateOne(
+        { 
+          $or: [
+            { _id: new ObjectId(id) },
+            { id: id }
+          ]
+        },
+        { 
+          $set: { 
+            status,
+            updatedAt: new Date()
+          } 
+        }
+      );
+      
+      if (result.matchedCount === 0) {
+        console.log(`[API] No connection matched for update`);
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      console.log(`[API] Updated connection:`, result);
+      
+      // Get the updated connection
+      const updatedConnection = await db.collection('connections').findOne({ 
+        $or: [
+          { _id: new ObjectId(id) },
+          { id: id }
+        ]
       });
-
-      res.json({ response: chatResponse.choices[0].message.content });
+      
+      if (!updatedConnection) {
+        console.log(`[API] Updated connection not found`);
+        return res.status(404).json({ message: "Updated connection not found" });
+      }
+      
+      // Convert MongoDB _id to id for response
+      const { _id, ...connectionData } = updatedConnection;
+      
+      const response = {
+        ...connectionData,
+        id: _id.toString()
+      };
+      
+      console.log(`[API] Sending response:`, response);
+      
+      // Set content type to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      return res.json(response);
     } catch (error) {
-      console.error('Chat error:', error);
-      res.status(500).json({ error: 'Failed to get response from assistant' });
+      console.error("[API] Error updating connection:", error);
+      
+      // Set content type to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Handle different types of errors
+      if (error instanceof Error) {
+        if (error.name === 'BSONError' || error.message.includes('ObjectId')) {
+          return res.status(400).json({ 
+            message: "Invalid connection ID format",
+            error: error.message
+          });
+        }
+      }
+      
+      return res.status(500).json({ 
+        message: "Failed to update connection", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Debug endpoint for connections
+  app.get("/api/debug/connections", async (req, res) => {
+    try {
+      // Get all connections from the database
+      const connections = await db.collection('connections').find({}).toArray();
+      
+      // Get all users for reference
+      const users = await db.collection('users').find({}).toArray();
+      const usersMap = new Map(users.map(user => [user._id.toString(), user]));
+      
+      // Map connections with user details
+      const mappedConnections = connections.map(conn => {
+        const fromUser = usersMap.get(conn.fromUserId.toString());
+        const toUser = usersMap.get(conn.toUserId.toString());
+        
+        return {
+          ...conn,
+          fromUser: fromUser ? {
+            id: fromUser._id.toString(),
+            fullName: fromUser.fullName,
+            email: fromUser.email,
+            userType: fromUser.userType
+          } : null,
+          toUser: toUser ? {
+            id: toUser._id.toString(),
+            fullName: toUser.fullName,
+            email: toUser.email,
+            userType: toUser.userType
+          } : null
+        };
+      });
+      
+      return res.json({
+        total: connections.length,
+        connections: mappedConnections,
+        users: users.map(user => ({
+          id: user._id.toString(),
+          fullName: user.fullName,
+          email: user.email,
+          userType: user.userType
+        }))
+      });
+    } catch (error) {
+      console.error("Error in debug endpoint:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+
+  const server = createServer(app);
+  return server;
 }

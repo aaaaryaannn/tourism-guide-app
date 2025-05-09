@@ -8,14 +8,54 @@ import Categories from "@/components/home/categories";
 import FeaturedPlaces from "@/components/home/featured-places";
 import AvailableGuides from "@/components/home/available-guides";
 import { ChatAssistant } from "@/components/chat-assistant";
+import { useWikimedia } from "@/hooks/use-wikimedia";
+import { Place } from "@shared/schema";
 
 const Dashboard: React.FC = () => {
   const [_, setLocation] = useLocation();
   const [bottomSheetOpen, setBottomSheetOpen] = useState(true);
   
-  const { data: places, isLoading: isLoadingPlaces } = useQuery({
+  // Fetch places from API
+  const { data: rawPlaces = [], isLoading: isLoadingPlaces } = useQuery<Place[]>({
     queryKey: ['/api/places'],
+    queryFn: async () => {
+      const response = await fetch('/api/places');
+      if (!response.ok) throw new Error('Failed to fetch places');
+      return response.json();
+    }
   });
+  
+  // Enhance places with Wikimedia images
+  const { places, isLoading: isLoadingWikimedia } = useWikimedia(rawPlaces, {
+    updateDatabase: true // Also update the backend data
+  });
+
+  // Boolean to check if any loading is in progress
+  const isLoading = isLoadingPlaces || isLoadingWikimedia;
+
+  // Use enhanced places data for rendering
+  const [mapMarkers, setMapMarkers] = useState<any[]>([]);
+  
+  // Update map markers when places change
+  useEffect(() => {
+    if (places && places.length > 0) {
+      const markers = places
+        .filter(place => 
+          ['attraction', 'monument', 'heritage', 'landmark'].includes(place.category)
+        )
+        .map(place => ({
+          position: {
+            lat: parseFloat(place.latitude),
+            lng: parseFloat(place.longitude)
+          },
+          title: place.name,
+          popup: place.name,
+          markerType: 'attraction'
+        }));
+      
+      setMapMarkers(markers);
+    }
+  }, [places]);
   
   return (
     <div className="h-full flex flex-col pb-14">
@@ -64,34 +104,56 @@ const Dashboard: React.FC = () => {
       </div>
       
       {/* Map View */}
-      <MapView
-        bottomSheetOpen={bottomSheetOpen}
-        onBottomSheetOpenChange={setBottomSheetOpen}
-        markers={places?.map(place => ({
-          position: { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) },
-          title: place.name,
-          popup: `<b>${place.name}</b><br>${place.location}`,
-        }))}
-        bottomSheetContent={
-          <div className="p-4 pb-16">
-            <h2 className="text-2xl font-bold font-sans mb-4">Explore Maharashtra</h2>
-            
-            {/* Categories */}
-            <Categories />
-            
-            {/* Featured Places */}
-            <FeaturedPlaces places={places || []} isLoading={isLoadingPlaces} />
-            
-            {/* Available Guides */}
-            <AvailableGuides />
-          </div>
+      <div className="flex-1 relative">
+        <MapView
+          zoom={12}
+          markers={mapMarkers}
+          bottomSheetOpen={bottomSheetOpen}
+          onBottomSheetOpenChange={setBottomSheetOpen}
+          enableDragging={true}
+          bottomSheetContent={
+            <div className="p-4 pb-28 space-y-6">
+              <Categories />
+              <FeaturedPlaces places={places} isLoading={isLoading} />
+              <AvailableGuides />
+            </div>
+          }
+        />
+      </div>
+      
+      <style jsx global>{`
+        .bottom-sheet-dragging {
+          overflow: hidden !important;
         }
-      />
+        
+        .bottom-sheet-drag {
+          cursor: grab;
+          touch-action: none !important;
+        }
+        
+        .bottom-sheet-drag:active {
+          cursor: grabbing;
+        }
+        
+        .bottom-sheet-drag .w-16 {
+          position: relative;
+          z-index: 9999;
+          pointer-events: auto !important;
+        }
+        
+        .leaflet-container {
+          z-index: 1;
+        }
+        
+        .leaflet-control-container {
+          z-index: 10;
+        }
+      `}</style>
       
       {/* Bottom Navigation */}
       <BottomNavigation />
     </div>
   );
-};
+}
 
 export default Dashboard;

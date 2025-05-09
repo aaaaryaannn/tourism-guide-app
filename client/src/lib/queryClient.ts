@@ -12,9 +12,30 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Get the token from localStorage
+  const token = localStorage.getItem('token');
+  
+  // Prepare headers
+  const headers: Record<string, string> = {
+    'Accept': 'application/json'
+  };
+  
+  // Add Content-Type header if there's data
+  if (data) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  // Add Authorization header if token exists
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // Make sure the URL starts with /api
+  const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+  
+  const res = await fetch(apiUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,7 +50,25 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+    
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Accept': 'application/json'
+    };
+    
+    // Add Authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Make sure the URL starts with /api
+    const url = queryKey[0] as string;
+    const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+    
+    const res = await fetch(apiUrl, {
+      headers,
       credentials: "include",
     });
 

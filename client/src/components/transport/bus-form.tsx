@@ -13,9 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { POPULAR_ROUTES } from "@/lib/constants";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/AuthContext";
+import { maharashtraDestinations } from "@/lib/mock-data";
 
 const busBookingSchema = z.object({
   from: z.string().min(1, "Origin is required"),
@@ -32,11 +30,13 @@ const busBookingSchema = z.object({
 
 type BusBookingFormValues = z.infer<typeof busBookingSchema>;
 
-const BusForm: React.FC = () => {
+interface BusFormProps {
+  onSearch: (data: BusBookingFormValues) => void;
+  isSearching: boolean;
+}
+
+const BusForm: React.FC<BusFormProps> = ({ onSearch, isSearching }) => {
   const [_, setLocation] = useLocation();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<BusBookingFormValues>({
     resolver: zodResolver(busBookingSchema),
@@ -47,52 +47,6 @@ const BusForm: React.FC = () => {
       busType: "all",
     },
   });
-  
-  const onSubmit = async (data: BusBookingFormValues) => {
-    setIsSubmitting(true);
-    
-    try {
-      if (!user) {
-        setLocation('/login');
-        return;
-      }
-      
-      const bookingData = {
-        userId: user.id,
-        type: "transport",
-        from: data.from,
-        to: data.to,
-        departureDate: data.departureDate,
-        returnDate: data.returnDate,
-        passengers: parseInt(data.passengers.split(' ')[0]),
-        bookingDetails: JSON.stringify({
-          busType: data.busType,
-          roundTrip: !!data.returnDate,
-        }),
-      };
-      
-      const response = await apiRequest("POST", "/api/bookings", bookingData);
-      
-      if (response.ok) {
-        toast({
-          title: "Booking successful",
-          description: "Your bus ticket has been booked",
-        });
-        setLocation("/dashboard");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Booking failed");
-      }
-    } catch (error) {
-      toast({
-        title: "Booking failed",
-        description: error instanceof Error ? error.message : "An error occurred during booking",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="p-4">
@@ -100,7 +54,7 @@ const BusForm: React.FC = () => {
       <p className="text-gray-600 mb-4 text-sm">Find the best travel options</p>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSearch)} className="space-y-4">
           <FormField
             control={form.control}
             name="from"
@@ -114,11 +68,9 @@ const BusForm: React.FC = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Mumbai">Mumbai</SelectItem>
-                    <SelectItem value="Pune">Pune</SelectItem>
-                    <SelectItem value="Nashik">Nashik</SelectItem>
-                    <SelectItem value="Aurangabad">Aurangabad</SelectItem>
-                    <SelectItem value="Kolhapur">Kolhapur</SelectItem>
+                    {maharashtraDestinations.map((city) => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -139,11 +91,9 @@ const BusForm: React.FC = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Mumbai">Mumbai</SelectItem>
-                    <SelectItem value="Pune">Pune</SelectItem>
-                    <SelectItem value="Nashik">Nashik</SelectItem>
-                    <SelectItem value="Aurangabad">Aurangabad</SelectItem>
-                    <SelectItem value="Kolhapur">Kolhapur</SelectItem>
+                    {maharashtraDestinations.map((city) => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -316,7 +266,7 @@ const BusForm: React.FC = () => {
           <Button 
             type="submit" 
             className="w-full py-6 bg-[#DC143C] hover:bg-[#B01030] text-white"
-            disabled={isSubmitting}
+            disabled={isSearching}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -331,7 +281,7 @@ const BusForm: React.FC = () => {
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
-            {isSubmitting ? "Searching..." : "Search Buses"}
+            {isSearching ? "Searching..." : "Search Buses"}
           </Button>
         </form>
       </Form>

@@ -1,6 +1,6 @@
-import { InsertPlace } from "@shared/schema";
+import type { Place } from "../../shared/schema.ts";
 
-export const maharashtraAttractions: InsertPlace[] = [
+export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   // Mumbai
   {
     name: 'Gateway of India',

@@ -1,8 +1,8 @@
-import { InsertUser, InsertGuideProfile } from "@shared/schema";
+import type { User, GuideProfile } from "../../shared/schema.ts";
 
 export const maharashtraGuides: {
-  user: InsertUser;
-  profile: InsertGuideProfile;
+  user: User;
+  profile: GuideProfile;
 }[] = [
   {
     user: {

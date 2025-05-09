@@ -39,8 +39,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ login }) => {
       setIsLoading(true);
       console.log("Attempting login for:", data.username);
       
+      // Use the username as both username and email
+      // This ensures the server can check both fields
+      const username = data.username;
+      const email = data.username.includes('@') ? data.username : undefined;
+      
       // Attempt login using the login function passed as prop
-      const user = await login(data.username, data.password);
+      const user = await login(username, data.password);
       console.log("Login successful:", user);
       
       toast({

@@ -25,9 +25,13 @@ export const POPULAR_ROUTES = [
   { from: "Mumbai", to: "Pune" },
   { from: "Mumbai", to: "Nashik" },
   { from: "Mumbai", to: "Aurangabad" },
-  { from: "Pune", to: "Mumbai" },
   { from: "Pune", to: "Kolhapur" },
-  { from: "Nashik", to: "Mumbai" }
+  { from: "Pune", to: "Shirdi" },
+  { from: "Pune", to: "Mahabaleshwar" },
+  { from: "Nashik", to: "Shirdi" },
+  { from: "Aurangabad", to: "Shirdi" },
+  { from: "Mumbai", to: "Lonavala" },
+  { from: "Pune", to: "Nagpur" }
 ];
 
 export const TOURIST_ATTRACTIONS = [

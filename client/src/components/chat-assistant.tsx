@@ -1,26 +1,36 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Loader2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function ChatAssistant() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [conversation, setConversation] = useState<{role: string, content: string}[]>([]);
+  const [conversation, setConversation] = useState<
+    { role: string; content: string }[]
+  >([]);
   const { toast } = useToast();
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
-    
+
     setIsLoading(true);
     const userMessage = message;
     setMessage("");
-    
+
     // Add user message to conversation
-    setConversation(prev => [...prev, { role: "user", content: userMessage }]);
+    setConversation((prev) => [
+      ...prev,
+      { role: "user", content: userMessage },
+    ]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -30,9 +40,12 @@ export function ChatAssistant() {
       });
 
       if (!response.ok) throw new Error("Failed to get response");
-      
+
       const data = await response.json();
-      setConversation(prev => [...prev, { role: "assistant", content: data.response }]);
+      setConversation((prev) => [
+        ...prev,
+        { role: "assistant", content: data.response },
+      ]);
     } catch (error) {
       toast({
         title: "Error",
@@ -47,11 +60,15 @@ export function ChatAssistant() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="w-10 h-10 rounded-full">
+        <Button
+          variant="outline"
+          size="icon"
+          className="w-10 h-10 rounded-full absolute top-3 right-3 z-20"
+        >
           <MessageSquare className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px] h-full flex flex-col">
+      <SheetContent className="w-[400px] sm:w-[540px] h-full flex flex-col z-50">
         <SheetHeader>
           <SheetTitle>Maharashtra Tour Guide Assistant</SheetTitle>
         </SheetHeader>
@@ -60,7 +77,9 @@ export function ChatAssistant() {
             <div
               key={i}
               className={`p-3 rounded-lg ${
-                msg.role === "user" ? "bg-primary text-primary-foreground ml-8" : "bg-muted mr-8"
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground ml-8"
+                  : "bg-muted mr-8"
               }`}
             >
               {msg.content}
@@ -80,8 +99,8 @@ export function ChatAssistant() {
               }
             }}
           />
-          <Button 
-            onClick={handleSendMessage} 
+          <Button
+            onClick={handleSendMessage}
             disabled={isLoading}
             className="px-8"
           >

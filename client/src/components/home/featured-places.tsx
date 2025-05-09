@@ -1,7 +1,9 @@
 import { useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Place } from "@shared/schema";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchWikimediaImage } from "@/lib/wikimedia-api";
+import { AttractionInfoDialog } from "../attraction-info-dialog";
 
 interface FeaturedPlacesProps {
   places: Place[];
@@ -12,6 +14,57 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
   const [_, setLocation] = useLocation();
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState('');
+  const [placesWithImages, setPlacesWithImages] = useState<Place[]>([]);
+
+  // Fetch Wikimedia images for places without them
+  useEffect(() => {
+    async function fetchMissingImages() {
+      if (!isLoading && places.length > 0) {
+        // We'll work with a copy of the places array
+        const updatedPlaces = [...places];
+        let hasUpdates = false;
+
+        // Process only attractions without Wikimedia images
+        for (let i = 0; i < updatedPlaces.length; i++) {
+          const place = updatedPlaces[i];
+          if (
+            ['attraction', 'monument', 'heritage', 'landmark'].includes(place.category) && 
+            !place.wikimediaThumbnailUrl
+          ) {
+            try {
+              const searchTerm = `${place.name} ${place.location} Maharashtra India`;
+              const imageInfo = await fetchWikimediaImage(searchTerm);
+              
+              if (imageInfo) {
+                // Update the place with Wikimedia info
+                updatedPlaces[i] = {
+                  ...place,
+                  imageUrl: imageInfo.thumbnailUrl, // Use as fallback image too
+                  wikimediaThumbnailUrl: imageInfo.thumbnailUrl,
+                  wikimediaDescription: imageInfo.descriptionHtml,
+                  wikimediaArtist: imageInfo.artistName,
+                  wikimediaAttributionUrl: imageInfo.attributionUrl,
+                  wikimediaLicense: imageInfo.licenseName,
+                  wikimediaLicenseUrl: imageInfo.licenseUrl
+                };
+                hasUpdates = true;
+              }
+            } catch (error) {
+              console.error(`Error fetching image for ${place.name}:`, error);
+            }
+          }
+        }
+
+        if (hasUpdates) {
+          setPlacesWithImages(updatedPlaces);
+        } else {
+          setPlacesWithImages(places);
+        }
+      }
+    }
+
+    fetchMissingImages();
+  }, [places, isLoading]);
 
   if (isLoading) {
     return (
@@ -37,7 +90,7 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
   }
 
   // Filter for all attractions without limiting to 5
-  const featuredPlaces = places.filter(place => 
+  const featuredPlaces = (placesWithImages.length > 0 ? placesWithImages : places).filter(place => 
     ['attraction', 'monument', 'heritage', 'landmark'].includes(place.category)
   );
 
@@ -58,10 +111,25 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
         {featuredPlaces.length > 0 ? (
           featuredPlaces.map((place) => (
             <div key={place.id} className="flex-shrink-0 w-40 rounded-lg overflow-hidden shadow-md">
-              <div 
-                className="w-full h-24 bg-gray-200 bg-cover bg-center"
-                style={{ backgroundImage: `url(${place.imageUrl || ''})` }}
-              ></div>
+              <div className="relative">
+                <div 
+                  className="w-full h-24 bg-gray-200 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${place.wikimediaThumbnailUrl || place.imageUrl || ''})` }}
+                ></div>
+                {place.wikimediaAttributionUrl && (
+                  <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] p-1">
+                    <a 
+                      href={place.wikimediaAttributionUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      © {place.wikimediaArtist?.split(' ')[0] || 'Wikimedia'}
+                    </a>
+                  </div>
+                )}
+              </div>
               <div className="p-2">
                 <div className="flex justify-between items-start">
                   <div>
@@ -116,24 +184,14 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
       </div>
     </div>
     {infoDialogOpen && (
-      <InfoDialog placeName={selectedPlace} onClose={() => setInfoDialogOpen(false)} />
+      <AttractionInfoDialog 
+        attractionName={selectedPlace} 
+        isOpen={infoDialogOpen}
+        onClose={() => setInfoDialogOpen(false)} 
+      />
     )}
     </>
   );
 };
-
-const InfoDialog = ({placeName, onClose}: {placeName: string; onClose: () => void}) => {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-96">
-        <h3 className="text-lg font-bold mb-2">{placeName}</h3>
-        <p>Information about {placeName} would be fetched here from the Wikipedia API.</p>
-        <button onClick={onClose} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Close
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default FeaturedPlaces;

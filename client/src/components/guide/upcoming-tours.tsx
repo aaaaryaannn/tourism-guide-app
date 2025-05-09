@@ -3,37 +3,38 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/lib/AuthContext";
 
 const UpcomingTours: React.FC = () => {
   const [_, setLocation] = useLocation();
-  
+
   const { user } = useAuth();
   const { data: upcomingTours, isLoading } = useQuery({
-    queryKey: ['/api/users', user?.id, 'itineraries'],
+    queryKey: ["/api/users", user?.id, "itineraries"],
     queryFn: async () => {
       const response = await fetch(`/api/users/${user?.id}/itineraries`);
-      if (!response.ok) throw new Error('Failed to fetch trips');
+      if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
-  
+
   // Only show up to 2 tours in the preview
   const displayTours = upcomingTours?.slice(0, 2) || [];
-  
+
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-medium">My Trips</h3>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="text-xs h-8 text-[#DC143C]"
-          onClick={() => setLocation('/guide-itineraries')}
+          onClick={() => setLocation("/guide-itineraries")}
         >
           See All
         </Button>
       </div>
-      
+
       {isLoading ? (
         <div className="text-center py-4 text-gray-500">Loading tours...</div>
       ) : displayTours.length === 0 ? (
@@ -54,10 +55,12 @@ const UpcomingTours: React.FC = () => {
               <line x1="9" y1="21" x2="9" y2="9" />
             </svg>
             <p className="text-gray-500">No upcoming tours</p>
-            <p className="text-xs text-gray-400 mt-1 mb-2">Create your first itinerary</p>
-            <Button 
+            <p className="text-xs text-gray-400 mt-1 mb-2">
+              Create your first itinerary
+            </p>
+            <Button
               className="text-xs h-8 bg-[#DC143C] hover:bg-[#B01030]"
-              onClick={() => setLocation('/guide-itineraries')}
+              onClick={() => setLocation("/guide-itineraries")}
             >
               Create Itinerary
             </Button>
@@ -66,15 +69,21 @@ const UpcomingTours: React.FC = () => {
       ) : (
         <>
           {displayTours.map((tour) => (
-            <Card key={tour.id} className="mb-3 hover:shadow-md transition-shadow cursor-pointer">
+            <Card
+              key={tour.id}
+              className="mb-3 hover:shadow-md transition-shadow cursor-pointer"
+            >
               <CardContent className="p-3">
                 <div className="flex justify-between items-start">
                   <h3 className="font-medium text-base">{tour.title}</h3>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
                     Upcoming
                   </Badge>
                 </div>
-                
+
                 <div className="mt-2 flex items-center text-sm text-gray-500">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -91,11 +100,15 @@ const UpcomingTours: React.FC = () => {
                     <line x1="9" y1="21" x2="9" y2="9" />
                   </svg>
                   <span>
-                    {tour.startDate ? new Date(tour.startDate).toLocaleDateString() : "No start date"} 
-                    {tour.endDate ? ` - ${new Date(tour.endDate).toLocaleDateString()}` : ""}
+                    {tour.startDate
+                      ? new Date(tour.startDate).toLocaleDateString()
+                      : "No start date"}
+                    {tour.endDate
+                      ? ` - ${new Date(tour.endDate).toLocaleDateString()}`
+                      : ""}
                   </span>
                 </div>
-                
+
                 <div className="mt-1 flex items-center text-sm text-gray-500">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -114,7 +127,7 @@ const UpcomingTours: React.FC = () => {
                   </svg>
                   <span>{tour.touristCount || 0} Tourists</span>
                 </div>
-                
+
                 <div className="mt-1 flex items-center text-sm text-gray-500">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

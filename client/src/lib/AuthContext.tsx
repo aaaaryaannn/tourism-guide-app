@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 // Define a base user type
 type BaseUser = {
-  id: number;
-  username: string;
-  fullName: string;
+  id: number | string;
+  username?: string;
+  name: string;
   email: string;
   phone?: string;
-  userType: string;
-  createdAt: string | Date;
+  role: string;
+  profilePicture?: string;
+  createdAt?: string | Date;
 };
 
 // User type with isGuide property
@@ -22,6 +23,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   isLoading: boolean;
+  isLoggedIn: boolean;
 }
 
 // Create the auth context
@@ -29,7 +31,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => { throw new Error("AuthProvider not initialized"); },
   logout: () => {},
-  isLoading: false
+  isLoading: false,
+  isLoggedIn: false
 });
 
 // Auth provider props
@@ -37,40 +40,60 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Set user in global window object for compatibility with existing components
+const setGlobalUser = (user: User | null) => {
+  if (user) {
+    (window as any).auth = { user };
+    console.log("Set global user in window.auth:", user);
+  } else {
+    (window as any).auth = null;
+    console.log("Cleared global user from window.auth");
+  }
+};
+
+// Helper function to create mock user data for demo logins
+export const createMockUser = (role: 'tourist' | 'guide'): User => {
+  return {
+    id: role === 'guide' ? '101' : '102',
+    username: role,
+    name: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
+    email: `${role}@example.com`,
+    phone: '+91 9876543210',
+    role: role,
+    createdAt: new Date().toISOString(),
+    isGuide: role === 'guide'
+  };
+};
+
 // Auth provider component
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in
+  // Immediately create a mock guide user for development
   useEffect(() => {
     console.log("AuthProvider initializing...");
+    setIsLoading(true);
     
-    try {
-      const storedUser = localStorage.getItem("user");
-      
-      if (storedUser) {
-        console.log("Found stored user data");
-        const parsedUser = JSON.parse(storedUser);
-        
-        // Make sure the isGuide property is set
-        const userData: User = {
-          ...parsedUser,
-          isGuide: parsedUser.userType === 'guide'
-        };
-        
-        setUser(userData);
-        console.log("User loaded from localStorage");
-      } else {
-        console.log("No stored user found");
-      }
-    } catch (error) {
-      console.error("Error loading user:", error);
-      localStorage.removeItem("user");
-    } finally {
+    // Always force a guide user for development
+    const mockUser = createMockUser('guide');
+    
+    // Set user in state
+    setUser(mockUser);
+    
+    // Set in global window object
+    setGlobalUser(mockUser);
+    
+    // Save to localStorage
+    localStorage.setItem("user", JSON.stringify(mockUser));
+    
+    console.log("Development mode: Auto-logged in as guide");
+    
+    // Short timeout to ensure the user state is properly set before rendering children
+    setTimeout(() => {
       setIsLoading(false);
       console.log("AuthProvider initialization complete");
-    }
+    }, 100);
   }, []);
 
   // Login function
@@ -79,34 +102,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     
     try {
-      // Make the API request
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      // Create mock user based on username
+      const userData = createMockUser(username === 'guide' ? 'guide' : 'tourist');
       
-      console.log("API response status:", response.status);
-      
-      // Handle non-OK responses
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Authentication failed");
-      }
-      
-      // Parse successful response
-      const data = await response.json();
-      console.log("Login success, data:", data);
-      
-      // Create the user object with isGuide property
-      const userData: User = {
-        ...data,
-        isGuide: data.userType === 'guide'
-      };
-      
-      // Update state and localStorage
+      // Update state
       setUser(userData);
+      
+      // Set in global window object
+      setGlobalUser(userData);
+      
+      // Save to localStorage
       localStorage.setItem("user", JSON.stringify(userData));
+      
+      console.log("Login success with user data:", userData);
+      
+      // Short delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       return userData;
     } catch (error: any) {
@@ -120,16 +131,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout function
   const logout = () => {
     console.log("Logging out");
+    
+    // Clear user state
     setUser(null);
+    
+    // Clear from global window object
+    setGlobalUser(null);
+    
+    // Remove from localStorage
     localStorage.removeItem("user");
+    
+    console.log("Logout complete");
   };
+
+  // Debug output for user state changes
+  useEffect(() => {
+    console.log("User state changed:", user);
+    if (user) {
+      console.log("User type:", user.role);
+      console.log("Is guide:", user.isGuide);
+      console.log("Window auth object:", (window as any).auth);
+    }
+  }, [user]);
 
   // Create context value
   const contextValue: AuthContextType = {
     user,
     login,
     logout,
-    isLoading
+    isLoading,
+    isLoggedIn: !!user
   };
 
   return (

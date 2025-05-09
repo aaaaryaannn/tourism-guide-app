@@ -15,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import BottomNavigation from "@/components/bottom-navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Itinerary } from "@shared/schema";
 // Global auth state is used instead of AuthContext
 
 const tripSchema = z.object({
@@ -58,7 +59,7 @@ const TripPlanner: React.FC = () => {
     }
   }, [user, setLocation, toast]);
   
-  const { data: itineraries, isLoading } = useQuery({
+  const { data: itineraries, isLoading } = useQuery<Itinerary[]>({
     queryKey: ['/api/users', user?.id, 'itineraries'],
     queryFn: async () => {
       const response = await fetch(`/api/users/${user?.id}/itineraries`);
@@ -73,6 +74,10 @@ const TripPlanner: React.FC = () => {
     defaultValues: {
       title: "",
       description: "",
+      fromCity: "",
+      toCity: "",
+      budget: "",
+      numberOfPlaces: 1
     },
   });
   
@@ -404,7 +409,7 @@ const TripPlanner: React.FC = () => {
               </div>
             ) : itineraries && itineraries.length > 0 ? (
               <div className="space-y-3">
-                {itineraries.map((itinerary) => (
+                {itineraries.map((itinerary: Itinerary) => (
                   <div key={itinerary.id} className="bg-white rounded-lg shadow-md p-4">
                     <h4 className="font-medium">{itinerary.title}</h4>
                     <p className="text-sm text-gray-500 mt-1">{itinerary.description}</p>
