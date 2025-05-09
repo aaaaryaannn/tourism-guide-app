@@ -2,8 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maharashtra Tourism App Preview</title>
+    <title>Maharashtra Tourism Guide</title>
+    <meta name="description" content="Discover the best tourist destinations in Maharashtra with our comprehensive tourism guide. Find attractions, book guides, and plan your perfect trip." />
+    <meta name="keywords" content="Maharashtra tourism, travel guide, tourist attractions, tour guides, trip planning" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aaaaryaannn.github.io/tourism-guide-app/" />
+    <meta property="og:title" content="Maharashtra Tourism Guide" />
+    <meta property="og:description" content="Discover the best tourist destinations in Maharashtra with our comprehensive tourism guide." />
+    <meta property="og:image" content="https://example.com/path-to-your-image.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://aaaaryaannn.github.io/tourism-guide-app/" />
+    <meta property="twitter:title" content="Maharashtra Tourism Guide" />
+    <meta property="twitter:description" content="Discover the best tourist destinations in Maharashtra with our comprehensive tourism guide." />
+    <meta property="twitter:image" content="https://example.com/path-to-your-image.jpg" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -77,36 +102,7 @@
     </style>
 </head>
 <body>
-    <h1>Maharashtra Tourism App</h1>
-    <p class="description">
-        This is a preview of the Maharashtra Tourism mobile app built with React Native and Expo.
-        Click the buttons below to view different screens of the application.
-    </p>
-    
-    <div class="app-container">
-        <div class="phone-frame">
-            <div class="screen" id="screen-display">
-                <!-- Screen content will be displayed here -->
-                <img src="attached_assets/WhatsApp Image 2025-04-02 at 00.56.25_06bf3593_1743544351260.jpg" alt="Welcome Screen" class="screen-image" id="screen-image">
-            </div>
-        </div>
-        
-        <div class="buttons-container">
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-04-02 at 00.56.25_06bf3593_1743544351260.jpg', 'Welcome')">Welcome</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-03-24 at 18.57.00_14b119bd_1743544286548.jpg', 'Search')">Search</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-03-24 at 18.57.00_6a2a16b7_1743544277305.jpg', 'Transport Booking')">Transport Booking</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-03-24 at 18.57.00_9f4d900f_1743544308745.jpg', 'Dashboard')">Dashboard</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-03-24 at 18.57.00_d3a38eed_1743544300386.jpg', 'Hotel Booking')">Hotel Booking</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-04-02 at 00.56.25_7097a392_1743544325833.jpg', 'Login')">Login</button>
-            <button class="screen-button" onclick="changeScreen('WhatsApp Image 2025-04-02 at 00.56.25_c089f669_1743544331872.jpg', 'Register')">Register</button>
-        </div>
-    </div>
-    
-    <script>
-        function changeScreen(imageFile, screenName) {
-            document.getElementById('screen-image').src = `attached_assets/${imageFile}`;
-            document.getElementById('screen-image').alt = `${screenName} Screen`;
-        }
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
