@@ -14,22 +14,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    cssCodeSplit: true,
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-label'],
-        },
+        manualChunks: undefined,
       },
     },
   },
   css: {
     modules: {
       localsConvention: 'camelCase',
-    },
-    postcss: {
-      plugins: [require('tailwindcss'), require('autoprefixer')],
     },
   },
 }) 
