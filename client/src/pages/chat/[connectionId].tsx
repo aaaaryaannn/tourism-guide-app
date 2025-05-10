@@ -249,9 +249,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
       
       // Create a new message
       const newMsg: Message = {
-        id: `msg_${Date.now()}`,
+        id: `msg_${Date.now().toString()}`,
         connectionId: connectionId,
-        senderId: currentUser.id,
+        senderId: currentUser.id.toString(),
         recipientId: recipientId.toString(),
         content: newMessage,
         timestamp: new Date().toISOString(),
@@ -293,10 +293,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
         setIsTyping(false);
         
         const replyMsg: Message = {
-          id: `msg_${Date.now()}`,
+          id: `msg_${Date.now().toString()}`,
           connectionId: connectionId,
           senderId: "recipient", // The other user
-          recipientId: currentUser.id,
+          recipientId: currentUser.id.toString(),
           content: getAutoReply(newMessage),
           timestamp: new Date().toISOString(),
           read: false
