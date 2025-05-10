@@ -59,7 +59,19 @@ const TripPlanner: React.FC = () => {
     }
   }, [user, setLocation, toast]);
   
-  const { data: itineraries, isLoading } = useQuery<Itinerary[]>({
+  const { data: itineraries, isLoading } = useQuery<Array<{
+    id?: string;
+    userId: string;
+    title: string;
+    description?: string;
+    startDate: string | Date;
+    endDate?: string | Date;
+    fromCity?: string;
+    toCity?: string;
+    numberOfPlaces?: number;
+    budget?: string;
+    tripType?: 'historical' | 'food' | 'adventure' | 'cultural' | 'picnic' | 'nature' | 'other';
+  }>>({
     queryKey: ['/api/users', user?.id, 'itineraries'],
     queryFn: async () => {
       const response = await fetch(`/api/users/${user?.id}/itineraries`);
@@ -409,7 +421,19 @@ const TripPlanner: React.FC = () => {
               </div>
             ) : itineraries && itineraries.length > 0 ? (
               <div className="space-y-3">
-                {itineraries.map((itinerary: Itinerary) => (
+                {itineraries.map((itinerary: {
+                  id?: string;
+                  userId: string;
+                  title: string;
+                  description?: string;
+                  startDate: string | Date;
+                  endDate?: string | Date;
+                  fromCity?: string;
+                  toCity?: string;
+                  numberOfPlaces?: number;
+                  budget?: string;
+                  tripType?: 'historical' | 'food' | 'adventure' | 'cultural' | 'picnic' | 'nature' | 'other';
+                }) => (
                   <div key={itinerary.id} className="bg-white rounded-lg shadow-md p-4">
                     <h4 className="font-medium">{itinerary.title}</h4>
                     <p className="text-sm text-gray-500 mt-1">{itinerary.description}</p>
