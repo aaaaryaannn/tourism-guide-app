@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import GuideBottomNavigation from "@/components/guide/bottom-navigation";
-import { User } from '../../shared/schema';
+import { User } from "@/shared/schema";
 
 interface Connection {
   id: number | string;

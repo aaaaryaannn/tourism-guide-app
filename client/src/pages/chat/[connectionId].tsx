@@ -247,7 +247,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
         id: `msg_${Date.now()}`,
         connectionId: connectionId,
         senderId: currentUser.id,
-        recipientId,
+        recipientId: recipientId.toString(),
         content: newMessage,
         timestamp: new Date().toISOString(),
         read: false

@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
         />
       </div>
       
-      <style jsx global>{`
+      <style>
         .bottom-sheet-dragging {
           overflow: hidden !important;
         }
@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
         .leaflet-control-container {
           z-index: 10;
         }
-      `}</style>
+      </style>
       
       {/* Bottom Navigation */}
       <BottomNavigation />
