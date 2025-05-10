@@ -415,8 +415,8 @@ const TripPlanner: React.FC = () => {
                     <p className="text-sm text-gray-500 mt-1">{itinerary.description}</p>
                     <div className="flex justify-between items-center mt-2 text-sm">
                       <span className="text-gray-600">
-                        {itinerary.startDate ? format(typeof itinerary.startDate === 'string' ? new Date(itinerary.startDate) : itinerary.startDate, "dd MMM yyyy") : ""}
-                        {itinerary.endDate ? ` - ${format(typeof itinerary.endDate === 'string' ? new Date(itinerary.endDate) : itinerary.endDate, "dd MMM yyyy")}` : ""}
+                        {itinerary.startDate ? format(itinerary.startDate instanceof Date ? itinerary.startDate : new Date(itinerary.startDate), "dd MMM yyyy") : ""}
+                        {itinerary.endDate ? ` - ${format(itinerary.endDate instanceof Date ? itinerary.endDate : new Date(itinerary.endDate), "dd MMM yyyy")}` : ""}
                       </span>
                       <Button size="sm" variant="outline">View Details</Button>
                     </div>
