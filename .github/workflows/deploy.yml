@@ -10,43 +10,35 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  deployments: write
-
-# Allow only one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: './client/package-lock.json'
 
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
 
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install client dependencies
+      - name: Install dependencies
         working-directory: ./client
         run: |
-          npm install
+          npm ci
           npm install zod mongodb @types/mongodb --save
           npm install -D tailwindcss postcss autoprefixer
 
-      - name: Build client
+      - name: Build
         working-directory: ./client
-        run: npm run build
+        run: |
+          npm run build
+          cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -54,12 +46,12 @@ jobs:
           path: ./client/dist
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2 
+        uses: actions/deploy-pages@v4 
