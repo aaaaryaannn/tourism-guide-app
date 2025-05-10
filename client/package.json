@@ -38,6 +38,7 @@
     "@radix-ui/react-toggle-group": "^1.0.3",
     "@radix-ui/react-tooltip": "^1.0.3",
     "@tanstack/react-query": "^4.29.12",
+    "@types/mongodb": "^4.0.7",
     "class-variance-authority": "^0.6.0",
     "clsx": "^1.2.1",
     "cmdk": "^1.1.1",
@@ -57,11 +58,9 @@
     "react-router-dom": "^6.11.2",
     "recharts": "^2.7.2",
     "tailwind-merge": "^1.13.0",
-    "tailwindcss-animate": "^1.0.5",
     "vaul": "^1.1.2",
     "wouter": "^2.11.2",
-    "zod": "^3.22.4",
-    "@types/mongodb": "^4.0.7"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/date-fns": "^2.6.0",
@@ -79,6 +78,7 @@
     "eslint-plugin-react-refresh": "^0.3.4",
     "postcss": "^8.4.23",
     "tailwindcss": "^3.3.2",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.2",
     "vite": "^4.5.14"
   }
