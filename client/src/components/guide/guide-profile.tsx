@@ -11,17 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
-
-interface GuideProfile {
-  id: string;
-  userId: string;
-  location: string;
-  specialties: string[];
-  languages: string[];
-  experience: number;
-  rating: number;
-  bio: string;
-}
+import { User, GuideProfile as GuideProfileType } from "../../shared/schema";
 
 const GuideProfile: React.FC = () => {
   const [_, setLocation] = useLocation();
@@ -38,7 +28,7 @@ const GuideProfile: React.FC = () => {
   });
 
   // Fetch guide profile
-  const { data: profile, isLoading } = useQuery<GuideProfile>({
+  const { data: profile, isLoading } = useQuery<GuideProfileType>({
     queryKey: ['/api/guide', user?.id, 'profile'],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/guide/${user?.id}/profile`);
@@ -111,10 +101,10 @@ const GuideProfile: React.FC = () => {
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} />
-              <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+              <AvatarFallback>{user?.fullName?.[0]}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold">{user?.name}</h3>
+              <h3 className="text-lg font-semibold">{user?.fullName}</h3>
               <p className="text-sm text-gray-500">@{user?.username}</p>
             </div>
           </div>
