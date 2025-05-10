@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import BottomNavigation from "@/components/bottom-navigation";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@/App"; // Import User type from App
+import { User } from "../../shared/schema";
 
 interface ProfileProps {
   user: User;

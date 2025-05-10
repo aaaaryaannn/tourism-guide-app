@@ -482,7 +482,7 @@ const MapView: React.FC<MapViewProps> = ({
       {bottomSheetContent && (
         <Sheet open={bottomSheetOpen} onOpenChange={onBottomSheetOpenChange}>
           <SheetContent 
-            side="bottom" 
+            side={null} 
             className="h-[60vh] px-0 rounded-t-xl overflow-hidden bottom-sheet"
           >
             <div className="flex flex-col h-full">

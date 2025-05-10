@@ -22,7 +22,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, onClick, isActive }) => 
 );
 
 const Navbar = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [location, setLocation] = useLocation();
 
   const isActive = (path: string) => location === path;

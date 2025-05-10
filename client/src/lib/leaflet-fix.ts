@@ -47,7 +47,7 @@ export const fixLeafletMapErrors = () => {
     const originalGetPosition = L.DomUtil.getPosition;
     
     // Replace the getPosition method with a safer version
-    L.DomUtil.getPosition = function(el) {
+    L.DomUtil.getPosition = function(el: HTMLElement) {
       if (!el) {
         console.warn('[Leaflet Fix] getPosition called with null/undefined element');
         return new L.Point(0, 0);

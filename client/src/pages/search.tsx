@@ -61,7 +61,6 @@ const SearchPage = () => {
           <MapView
             markers={[]}
             onMarkerClick={() => {}}
-            onDragEnd={() => {}}
             className="w-full h-full"
           />
         </div>
