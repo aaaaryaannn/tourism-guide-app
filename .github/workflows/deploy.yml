@@ -27,7 +27,7 @@ jobs:
       - name: Clean install in client
         working-directory: ./client
         run: |
-          rm -rf node_modules package-lock.json
+          rm -rf node_modules
           npm install
 
       - name: Build client
