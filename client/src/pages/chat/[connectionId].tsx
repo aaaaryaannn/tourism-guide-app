@@ -21,11 +21,16 @@ interface Message {
 // User interface
 interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
-  phone?: string;
-  role: 'tourist' | 'guide';
-  profilePicture?: string;
+  fullName: string;
+  phone: string;
+  userType: 'tourist' | 'guide' | 'admin';
+  currentLatitude?: string;
+  currentLongitude?: string;
+  lastLocationUpdate?: Date;
+  createdAt?: Date;
+  isGuide?: boolean;
 }
 
 // Define props interface for ChatPage
@@ -128,7 +133,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
           const otherUser = isFromUser ? connData.toUser : connData.fromUser;
           
           if (otherUser) {
-            setOtherUserName(otherUser.name || "User");
+            setOtherUserName(otherUser.fullName || "User");
             recipientId = otherUser.id;
           }
         }

@@ -13,7 +13,8 @@ export const userSchema = z.object({
   currentLatitude: z.string().optional(),
   currentLongitude: z.string().optional(),
   lastLocationUpdate: z.date().optional(),
-  createdAt: z.date().optional()
+  createdAt: z.date().optional(),
+  isGuide: z.boolean().optional()
 }).passthrough(); // Allow unknown properties to pass through
 
 export type User = z.infer<typeof userSchema>;
