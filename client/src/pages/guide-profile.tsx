@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { LogOut, Mail, Phone } from "lucide-react";
-import { User, GuideProfile as GuideProfileType } from "../../shared/schema";
+import { User, GuideProfile as GuideProfileType } from "@/shared/schema";
 
 const GuideProfile = () => {
   const [_, setLocation] = useLocation();
