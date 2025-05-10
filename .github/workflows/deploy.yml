@@ -27,7 +27,12 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        run: |
+          npm install
+          npm install zod mongodb @types/mongodb --save
+
+      - name: Install client dependencies
         working-directory: ./client
         run: |
           npm ci
