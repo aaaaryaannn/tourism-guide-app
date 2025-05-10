@@ -1,3 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
+
+const { user } = useAuth();
 const { data: itineraries, isLoading } = useQuery({
     queryKey: ['itineraries', user?.id],
     queryFn: async () => {

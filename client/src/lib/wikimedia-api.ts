@@ -1,6 +1,6 @@
 // Wikimedia API integration for fetching images and information
 
-interface WikimediaImageInfo {
+export interface WikimediaImageInfo {
   thumbnailUrl: string;
   descriptionHtml: string;
   artistName: string;

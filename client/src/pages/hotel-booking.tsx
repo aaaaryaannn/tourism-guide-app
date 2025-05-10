@@ -247,7 +247,7 @@ const HotelBooking: React.FC = () => {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
+                              disabled={(date: Date) => date < new Date()}
                               initialFocus
                             />
                           </PopoverContent>
@@ -298,7 +298,7 @@ const HotelBooking: React.FC = () => {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => {
+                              disabled={(date: Date) => {
                                 const checkInDate = form.getValues("checkIn");
                                 return date < new Date() || (checkInDate && date <= checkInDate);
                               }}

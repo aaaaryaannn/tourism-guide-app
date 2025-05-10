@@ -268,9 +268,9 @@ const GuideProfile = () => {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={updateProfile.isPending}
+              disabled={updateProfile.isLoading}
             >
-              {updateProfile.isPending ? "Updating..." : "Update Profile"}
+              {updateProfile.isLoading ? "Updating..." : "Update Profile"}
             </Button>
           </form>
         </div>

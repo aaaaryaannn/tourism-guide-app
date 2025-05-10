@@ -265,7 +265,7 @@ const TripPlanner: React.FC = () => {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
+                            disabled={(date: Date) => date < new Date()}
                             initialFocus
                           />
                         </PopoverContent>
@@ -316,7 +316,7 @@ const TripPlanner: React.FC = () => {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => {
+                            disabled={(date: Date) => {
                               const startDate = form.getValues("startDate");
                               return date < new Date() || (startDate && date <= startDate);
                             }}
@@ -333,9 +333,9 @@ const TripPlanner: React.FC = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-[#DC143C] hover:bg-[#B01030] text-white"
-                disabled={createTrip.isPending}
+                disabled={createTrip.isLoading}
               >
-                {createTrip.isPending ? "Creating..." : "Create Trip"}
+                {createTrip.isLoading ? "Creating..." : "Create Trip"}
               </Button>
             </form>
           </Form>
