@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 
 // User Schema
 export const userSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   username: z.string().min(3),
   email: z.string().email(),
   password: z.string().min(6),
@@ -14,14 +14,14 @@ export const userSchema = z.object({
   currentLongitude: z.string().optional(),
   lastLocationUpdate: z.date().optional(),
   createdAt: z.date().optional(),
-  isGuide: z.boolean().optional()
+  isGuide: z.boolean()
 }).passthrough(); // Allow unknown properties to pass through
 
 export type User = z.infer<typeof userSchema>;
 
 // Guide Profile Schema
 export const guideProfileSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   userId: z.string(),
   location: z.string(),
   experience: z.number(),
@@ -29,7 +29,7 @@ export const guideProfileSchema = z.object({
   specialties: z.array(z.string()),
   rating: z.number(),
   bio: z.string()
-});
+}).passthrough();
 
 export type GuideProfile = z.infer<typeof guideProfileSchema>;
 
