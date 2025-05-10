@@ -1,23 +1,19 @@
 import { defineConfig } from 'vite';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  root: path.join(__dirname, '..'),
+  server: {
+    port: 3000,
+    host: true
+  },
   build: {
     outDir: 'dist',
-    emptyOutDir: true,
+    target: 'esnext',
+    sourcemap: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, '../index.html')
+        main: path.resolve(__dirname, 'index.ts')
       }
-    }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '../src')
     }
   }
 }); 

@@ -1,15 +1,20 @@
-import type { Place } from "../../shared/schema.ts";
+import { Place } from '../../shared/schema';
 
-export const maharashtraAttractions: Omit<Place, 'id'>[] = [
+export const maharashtraAttractions: Omit<Place, 'id' | 'createdAt' | 'updatedAt'>[] = [
   // Mumbai
   {
     name: 'Gateway of India',
-    description: 'The iconic arch monument built during the British Raj in Mumbai.',
+    description: 'An arch monument built in the early twentieth century in Mumbai, the Gateway of India is one of the most popular tourist destinations in the city.',
     location: 'Mumbai',
     category: 'monument',
     latitude: '18.9220',
     longitude: '72.8347',
-    imageUrl: 'https://images.unsplash.com/photo-1587474260584-136574528ed5'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Mumbai_03-2016_30_Gateway_of_India.jpg',
+    rating: 4.5,
+    reviews: [],
+    openingHours: '24/7',
+    entryFee: 'Free',
+    bestTimeToVisit: 'Early morning or evening'
   },
   {
     name: 'Marine Drive',
@@ -40,12 +45,12 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   },
   {
     name: 'Siddhivinayak Temple',
-    description: 'One of the most visited temples in Mumbai dedicated to Lord Ganesha.',
+    description: 'The Shree Siddhivinayak Ganapati Mandir is a Hindu temple dedicated to Lord Shri Ganesh. It was originally built by Laxman Vithu and Deubai Patil on November 19, 1801. It is one of the richest temples in Mumbai.',
     location: 'Mumbai',
     category: 'temple',
     latitude: '19.0170',
     longitude: '72.8302',
-    imageUrl: 'https://images.unsplash.com/photo-1621317793626-827a282dc994'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Siddhivinayak_Temple.jpg/1280px-Siddhivinayak_Temple.jpg'
   },
   {
     name: 'Juhu Beach',
@@ -134,21 +139,31 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   // Aurangabad
   {
     name: 'Ajanta Caves',
-    description: 'UNESCO World Heritage Site featuring 30 rock-cut Buddhist cave monuments dating from 2nd century BCE to about 480 CE.',
+    description: 'The Ajanta Caves are ancient Buddhist rock-cut cave monuments dating from the 2nd century BCE to about 480 CE in Aurangabad district of Maharashtra.',
     location: 'Aurangabad',
     category: 'heritage',
     latitude: '20.5519',
     longitude: '75.7033',
-    imageUrl: 'https://images.unsplash.com/photo-1590586767908-99b2d8a7b732'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Ajanta_caves_Maharashtra.jpg',
+    rating: 4.8,
+    reviews: [],
+    openingHours: '9 AM - 5:30 PM',
+    entryFee: 'INR 40 for Indians, INR 600 for foreigners',
+    bestTimeToVisit: 'November to March'
   },
   {
     name: 'Ellora Caves',
-    description: 'UNESCO World Heritage Site with 34 monasteries and temples representing Buddhist, Hindu and Jain art from 600-1000 CE.',
+    description: 'The Ellora Caves are a UNESCO World Heritage Site located in the Aurangabad district of Maharashtra. The caves are known for their Hindu, Buddhist, and Jain temples carved out of rock.',
     location: 'Aurangabad',
     category: 'heritage',
     latitude: '20.0258',
-    longitude: '75.1795',
-    imageUrl: 'https://images.unsplash.com/photo-1560108878-8145b2a56e9d'
+    longitude: '75.1780',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Kailasa_temple_at_ellora.jpg',
+    rating: 4.7,
+    reviews: [],
+    openingHours: '6 AM - 6 PM',
+    entryFee: 'INR 40 for Indians, INR 600 for foreigners',
+    bestTimeToVisit: 'November to March'
   },
   {
     name: 'Bibi Ka Maqbara',
@@ -206,6 +221,15 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
     longitude: '73.3986',
     imageUrl: 'https://images.unsplash.com/photo-1621318844927-a796d6fa7bba'
   },
+  {
+    name: 'Lonavala Lake',
+    description: 'Lonavala Lake is a popular tourist destination offering scenic views and boating activities. The lake is surrounded by natural beauty and is particularly stunning during the monsoon season.',
+    location: 'Lonavala',
+    category: 'nature',
+    latitude: '18.7520',
+    longitude: '73.4072',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Lonavala_Lake.jpg/1280px-Lonavala_Lake.jpg'
+  },
   
   // Nashik
   {
@@ -219,12 +243,12 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   },
   {
     name: 'Sula Vineyards',
-    description: 'India\'s largest wine producer and vineyard resort offering wine tasting and tours in Nashik.',
+    description: 'Sula Vineyards is India\'s largest wine producer and a pioneer of wine tourism in the country. The winery offers tours, tastings, and a resort experience in the heart of Nashik\'s wine country.',
     location: 'Nashik',
     category: 'winery',
-    latitude: '19.9592',
-    longitude: '73.7915',
-    imageUrl: 'https://images.unsplash.com/photo-1578911373434-0cb395d2cbfb'
+    latitude: '20.0123',
+    longitude: '73.7957',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Sula_Vineyards%2C_Nashik.jpg/1280px-Sula_Vineyards%2C_Nashik.jpg'
   },
   {
     name: 'Pandavleni Caves',
@@ -247,13 +271,13 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   
   // Kolhapur
   {
-    name: 'Mahalaxmi Temple',
-    description: 'A famous Hindu temple dedicated to Goddess Mahalaxmi in Kolhapur, one of the six Shakti Peethas.',
+    name: 'Mahalakshmi Temple',
+    description: 'The Mahalakshmi Temple is one of the Shakti Peethas. It is located in Kolhapur, Maharashtra, India. The temple is dedicated to Amba Bai (Mother Goddess). The temple belongs architecturally to the Kannada Chalukya empire.',
     location: 'Kolhapur',
     category: 'temple',
     latitude: '16.7047',
     longitude: '74.2435',
-    imageUrl: 'https://images.unsplash.com/photo-1614843081582-3be56d8afab1'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Mahalakshmi_Temple_Kolhapur.jpg/1280px-Mahalakshmi_Temple_Kolhapur.jpg'
   },
   {
     name: 'New Palace Museum',
@@ -295,12 +319,21 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
   },
   {
     name: 'Pratapgad Fort',
-    description: 'A mountain fort near Mahabaleshwar built by Chhatrapati Shivaji Maharaj in 1656.',
-    location: 'Mahabaleshwar',
+    description: 'Pratapgad is a large fort located in Satara district, Maharashtra. It is now a popular tourist destination and is maintained by Uran Islampur Municipality. The fort\'s upper campus includes a temple to the deity Bhavani.',
+    location: 'Satara',
     category: 'heritage',
-    latitude: '17.9370',
-    longitude: '73.5806',
-    imageUrl: 'https://images.unsplash.com/photo-1615555896813-9a6e0a49a8ca'
+    latitude: '17.9367',
+    longitude: '73.5801',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Pratapgad_Fort.jpg/1280px-Pratapgad_Fort.jpg'
+  },
+  {
+    name: 'Mahabaleshwar Temple',
+    description: 'The Mahabaleshwar Temple is an ancient shrine and an example of the Maratha heritage, featuring traditional architecture. The temple is a significant pilgrimage site dedicated to Lord Shiva.',
+    location: 'Mahabaleshwar',
+    category: 'temple',
+    latitude: '17.9257',
+    longitude: '73.6559',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahabaleshwar_Temple.jpg/1280px-Mahabaleshwar_Temple.jpg'
   },
   
   // Nagpur
@@ -479,5 +512,14 @@ export const maharashtraAttractions: Omit<Place, 'id'>[] = [
     latitude: '16.9902',
     longitude: '73.3120',
     imageUrl: 'https://images.unsplash.com/photo-1568475064736-29d7dbc96bb5'
+  },
+  {
+    name: 'Kolhapur Palace',
+    description: 'The New Palace or the Maharaja\'s Palace is a palace situated in Kolhapur, in the Indian state of Maharashtra. It was constructed between 1877 and 1884 during the reign of Chhatrapati Shahu Maharaj.',
+    location: 'Kolhapur',
+    category: 'heritage',
+    latitude: '16.7050',
+    longitude: '74.2433',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/New_Palace_Kolhapur.jpg/1280px-New_Palace_Kolhapur.jpg'
   }
 ];

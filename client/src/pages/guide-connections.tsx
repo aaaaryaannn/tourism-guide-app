@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, MessageSquare } from "lucide-react";
-import type { User } from "../../../shared/schema";
+import type { User } from "../shared/schema";
 
 // Guide profile interface
 interface GuideProfile {
@@ -773,10 +773,10 @@ const GuideConnections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {tourist?.fullName?.charAt(0) || 'T'}
+                                {tourist?.name?.charAt(0) || 'T'}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-lg">{tourist?.fullName || 'Tourist'}</h3>
+                                <h3 className="font-semibold text-lg">{tourist?.name || 'Tourist'}</h3>
                                 <p className="text-gray-500 text-sm">{getUserRoleLabel(tourist)}</p>
                                 <div className="flex items-center mt-1">
                                   <Badge className="bg-yellow-100 text-yellow-800 font-medium border-yellow-200">
@@ -879,10 +879,10 @@ const GuideConnections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {tourist?.fullName?.charAt(0) || 'T'}
+                                {tourist?.name?.charAt(0) || 'T'}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-lg">{tourist?.fullName || 'Tourist'}</h3>
+                                <h3 className="font-semibold text-lg">{tourist?.name || 'Tourist'}</h3>
                                 <p className="text-gray-500 text-sm">{getUserRoleLabel(tourist)}</p>
                                 <div className="flex items-center mt-1">
                                   <Badge className="bg-green-100 text-green-800 font-medium border-green-200">
@@ -979,10 +979,10 @@ const GuideConnections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {tourist?.fullName?.charAt(0) || 'T'}
+                                {tourist?.name?.charAt(0) || 'T'}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-lg">{tourist?.fullName || 'Tourist'}</h3>
+                                <h3 className="font-semibold text-lg">{tourist?.name || 'Tourist'}</h3>
                                 <p className="text-gray-500 text-sm">{getUserRoleLabel(tourist)}</p>
                                 <div className="flex items-center mt-1">
                                   <Badge className="bg-red-100 text-red-800 font-medium border-red-200">

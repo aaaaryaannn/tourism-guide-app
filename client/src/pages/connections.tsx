@@ -778,10 +778,10 @@ const Connections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {otherParty?.fullName?.charAt(0) || '?'}
+                                {otherParty?.name?.charAt(0) || '?'}
                     </div>
                     <div>
-                                <h3 className="font-semibold text-lg">{otherParty?.fullName}</h3>
+                                <h3 className="font-semibold text-lg">{otherParty?.name}</h3>
                                 <p className="text-gray-500 text-sm">
                                   {getUserRoleLabel(otherParty)}
                                 </p>
@@ -980,10 +980,10 @@ const Connections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {otherParty?.fullName?.charAt(0) || '?'}
+                                {otherParty?.name?.charAt(0) || '?'}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-lg">{otherParty?.fullName}</h3>
+                                <h3 className="font-semibold text-lg">{otherParty?.name}</h3>
                                 <p className="text-gray-500 text-sm">
                                   {getUserRoleLabel(otherParty)}
                                 </p>
@@ -1109,10 +1109,10 @@ const Connections: React.FC = () => {
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
                               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xl font-semibold mr-3">
-                                {otherParty?.fullName?.charAt(0) || '?'}
+                                {otherParty?.name?.charAt(0) || '?'}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-lg">{otherParty?.fullName}</h3>
+                                <h3 className="font-semibold text-lg">{otherParty?.name}</h3>
                                 <p className="text-gray-500 text-sm">
                                   {getUserRoleLabel(otherParty)}
                                 </p>
@@ -1144,7 +1144,7 @@ const Connections: React.FC = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Chat with {selectedConnection?.fromUser?.fullName || selectedConnection?.toUser?.fullName}
+              Chat with {selectedConnection?.fromUser?.name || selectedConnection?.toUser?.name}
             </DialogTitle>
             <DialogDescription>
               Send and receive messages directly

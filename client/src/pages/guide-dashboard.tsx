@@ -240,6 +240,15 @@ const GuideDashboard: React.FC = () => {
             lastLocationUpdate: undefined,
             createdAt: undefined
           }
+        },
+        {
+          id: '102',
+          name: 'Tourist Demo',
+          email: 'tourist@example.com',
+          password: 'demo123',
+          userType: 'user',
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       ];
       return mockData;

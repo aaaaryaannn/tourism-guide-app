@@ -56,8 +56,8 @@ export async function seedMissingData() {
     
     // Add each guide one by one
     for (const guide of maharashtraGuides) {
-      // Check if guide with the same username already exists
-      const existingGuide = await db.collection('users').findOne({ username: guide.user.username });
+      // Check if guide with the same email already exists
+      const existingGuide = await db.collection('users').findOne({ email: guide.user.email });
       
       if (!existingGuide) {
         try {
@@ -84,9 +84,9 @@ export async function seedMissingData() {
           });
           
           await db.collection('guideProfiles').insertOne(profile);
-          console.log(`Added guide: ${guide.user.fullName}`);
+          console.log(`Added guide: ${guide.user.name}`);
         } catch (error) {
-          console.error(`Error adding guide ${guide.user.fullName}:`, error);
+          console.error(`Error adding guide ${guide.user.name}:`, error);
         }
       }
     }

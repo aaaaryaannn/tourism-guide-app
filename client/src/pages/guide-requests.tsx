@@ -265,14 +265,14 @@ const GuideRequests: React.FC = () => {
                       <div className="p-4">
                         <div className="flex items-center">
                           <Avatar className="h-10 w-10 mr-3">
-                            <AvatarImage src="" alt={tourist?.fullName} />
+                            <AvatarImage src="" alt={tourist?.name} />
                             <AvatarFallback>
-                              {tourist?.fullName?.charAt(0) || '?'}
+                              {tourist?.name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <span className="font-medium">{tourist?.fullName}</span>
+                              <span className="font-medium">{tourist?.name}</span>
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                                 Pending
                               </Badge>
@@ -331,14 +331,14 @@ const GuideRequests: React.FC = () => {
                     <CardContent className="p-4">
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
-                          <AvatarImage src="" alt={tourist?.fullName} />
+                          <AvatarImage src="" alt={tourist?.name} />
                           <AvatarFallback>
-                            {tourist?.fullName?.charAt(0) || '?'}
+                            {tourist?.name?.charAt(0) || '?'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium">{tourist?.fullName}</span>
+                            <span className="font-medium">{tourist?.name}</span>
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                               Accepted
                             </Badge>
@@ -408,14 +408,14 @@ const GuideRequests: React.FC = () => {
                     <CardContent className="p-4">
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
-                          <AvatarImage src="" alt={tourist?.fullName} />
+                          <AvatarImage src="" alt={tourist?.name} />
                           <AvatarFallback>
-                            {tourist?.fullName?.charAt(0) || '?'}
+                            {tourist?.name?.charAt(0) || '?'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium">{tourist?.fullName}</span>
+                            <span className="font-medium">{tourist?.name}</span>
                             <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                               Rejected
                             </Badge>

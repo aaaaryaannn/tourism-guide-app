@@ -1,10 +1,10 @@
-import { db } from "../db.ts";
+import { db } from "../db.js";
 import { 
   userSchema,
   guideProfileSchema,
   placeSchema,
   bookingSchema
-} from "../../shared/schema.ts";
+} from "../../shared/schema.js";
 import { ObjectId } from 'mongodb';
 
 // Maharashtra attractions with images, descriptions, and coordinates
@@ -15,7 +15,7 @@ const maharashtraAttractions = [
     description: "Iconic monument built during British rule, a symbol of Mumbai and a popular tourist spot.",
     latitude: "18.9219",
     longitude: "72.8347",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Mumbai_03-2016_30_Gateway_of_India.jpg"
   },
   {
@@ -24,7 +24,7 @@ const maharashtraAttractions = [
     description: "UNESCO World Heritage site with 34 rock-cut temples and monasteries dating back to 600-1000 CE.",
     latitude: "20.0258",
     longitude: "75.1780",
-    category: "attraction",
+    category: "heritage",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Kailasa_temple_at_ellora.JPG"
   },
   {
@@ -33,7 +33,7 @@ const maharashtraAttractions = [
     description: "Popular hill station in the Western Ghats, famous for its scenic beauty, waterfalls, and chikki.",
     latitude: "18.7546",
     longitude: "73.4062",
-    category: "attraction",
+    category: "nature",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Lonavla_Lake.JPG"
   },
   {
@@ -42,7 +42,7 @@ const maharashtraAttractions = [
     description: "30 rock-cut Buddhist cave monuments dating from the 2nd century BCE to about 480 CE.",
     latitude: "20.5526",
     longitude: "75.7033",
-    category: "attraction",
+    category: "heritage",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/4/41/Ajanta_%288%29.jpg"
   },
   {
@@ -51,7 +51,7 @@ const maharashtraAttractions = [
     description: "Hill station in Western Ghats, known for its strawberries, honey, and panoramic views.",
     latitude: "17.9256",
     longitude: "73.6395",
-    category: "attraction",
+    category: "nature",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d3/Mahabaleshwar_hills_01.jpg"
   },
   {
@@ -60,7 +60,7 @@ const maharashtraAttractions = [
     description: "Historical fortification in Pune, once the seat of the Peshwa rulers of the Maratha Empire.",
     latitude: "18.5195",
     longitude: "73.8553",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/3/39/Shaniwarwada_entrance.JPG"
   },
   {
@@ -69,7 +69,7 @@ const maharashtraAttractions = [
     description: "Temple dedicated to Sai Baba of Shirdi, attracts millions of devotees from around the world.",
     latitude: "19.7645",
     longitude: "74.4771",
-    category: "attraction",
+    category: "spiritual",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Shirdi_Sai_Baba_Temple.jpg"
   },
   {
@@ -78,7 +78,7 @@ const maharashtraAttractions = [
     description: "3.6 km long boulevard in South Mumbai, also known as the Queen's Necklace.",
     latitude: "18.9548",
     longitude: "72.8224",
-    category: "attraction",
+    category: "landmark",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/9/9c/Marine_Drive_Mumbai.jpg"
   },
   {
@@ -87,7 +87,7 @@ const maharashtraAttractions = [
     description: "UNESCO World Heritage site on Elephanta Island in Mumbai Harbour with ancient cave temples.",
     latitude: "18.9633",
     longitude: "72.9315",
-    category: "attraction",
+    category: "heritage",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c4/Elephanta_Caves.jpg"
   },
   {
@@ -96,7 +96,7 @@ const maharashtraAttractions = [
     description: "Ancient Buddhist caves in the forests of Sanjay Gandhi National Park with 109 cave entrances.",
     latitude: "19.2094",
     longitude: "72.9069",
-    category: "attraction",
+    category: "heritage",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Kanheri_caves_1.jpg"
   },
   {
@@ -105,7 +105,7 @@ const maharashtraAttractions = [
     description: "Historical building with importance in India's independence movement, now a memorial to Mahatma Gandhi.",
     latitude: "18.5507",
     longitude: "73.9006",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/19/Aga_Khan_Palace%2C_Pune.jpg"
   },
   {
@@ -114,7 +114,7 @@ const maharashtraAttractions = [
     description: "Hill fort in the Sahyadri mountain range, capital of the Maratha Empire under Shivaji Maharaj.",
     latitude: "18.2349",
     longitude: "73.4482",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Main_entrance_to_Raigad_Fort.jpg"
   },
   {
@@ -123,7 +123,7 @@ const maharashtraAttractions = [
     description: "Mountain fort where the Battle of Pratapgad was fought between Shivaji and Afzal Khan.",
     latitude: "17.9368",
     longitude: "73.5805",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Pratapgad_-_Main_Entrance.JPG"
   },
   {
@@ -132,7 +132,7 @@ const maharashtraAttractions = [
     description: "UNESCO World Heritage Site and historic railway station with Victorian Gothic architecture.",
     latitude: "18.9399",
     longitude: "72.8354",
-    category: "attraction",
+    category: "monument",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6c/Mumbai_Train_Station.jpg"
   },
   {
@@ -141,7 +141,7 @@ const maharashtraAttractions = [
     description: "Planned hill city with Italian-style architecture and beautiful landscapes.",
     latitude: "18.4060",
     longitude: "73.5065",
-    category: "attraction",
+    category: "nature",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/7/7a/Lavasa.jpg"
   }
 ];
@@ -149,13 +149,14 @@ const maharashtraAttractions = [
 // Maharashtra guides
 const maharashtraGuides = [
   {
-    username: "aditya_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "aditya@guides.com",
-    fullName: "Aditya Patil",
-    phone: "9876543210",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Aditya Patil",
+      email: "aditya@guides.com",
+      password: "password123",
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/men/1.jpg"
+    },
+    profile: {
       location: "Mumbai, Maharashtra",
       experience: 5,
       languages: ["English", "Hindi", "Marathi"],
@@ -165,13 +166,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "priya_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "priya@guides.com",
-    fullName: "Priya Sharma",
-    phone: "9876543211",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Priya Sharma",
+      email: "priya@guides.com",
+      password: "password123",
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/women/2.jpg"
+    },
+    profile: {
       location: "Pune, Maharashtra",
       experience: 3,
       languages: ["English", "Hindi", "Marathi", "French"],
@@ -181,13 +183,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "raj_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "raj@guides.com",
-    fullName: "Raj Deshmukh",
-    phone: "9876543212",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Raj Deshmukh",
+      email: "raj@guides.com",
+      password: "password123",
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/men/3.jpg"
+    },
+    profile: {
       location: "Aurangabad, Maharashtra",
       experience: 7,
       languages: ["English", "Hindi", "Marathi", "German"],
@@ -197,13 +200,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "kavita_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "kavita@guides.com",
-    fullName: "Kavita Joshi",
-    phone: "9876543213",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Kavita Joshi",
+      email: "kavita@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/women/4.jpg"
+    },
+    profile: {
       location: "Nashik, Maharashtra",
       experience: 4,
       languages: ["English", "Hindi", "Marathi"],
@@ -213,13 +217,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "vikram_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "vikram@guides.com",
-    fullName: "Vikram Kulkarni",
-    phone: "9876543214",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Vikram Kulkarni",
+      email: "vikram@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/men/5.jpg"
+    },
+    profile: {
       location: "Lonavala, Maharashtra",
       experience: 6,
       languages: ["English", "Hindi", "Marathi"],
@@ -229,13 +234,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "neha_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "neha@guides.com",
-    fullName: "Neha Verma",
-    phone: "9876543215",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Neha Verma",
+      email: "neha@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/women/6.jpg"
+    },
+    profile: {
       location: "Mahabaleshwar, Maharashtra",
       experience: 5,
       languages: ["English", "Hindi", "Marathi"],
@@ -245,13 +251,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "amit_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "amit@guides.com",
-    fullName: "Amit Thakur",
-    phone: "9876543216",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Amit Thakur",
+      email: "amit@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/men/7.jpg"
+    },
+    profile: {
       location: "Kolhapur, Maharashtra",
       experience: 4,
       languages: ["English", "Hindi", "Marathi"],
@@ -261,13 +268,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "sarika_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "sarika@guides.com",
-    fullName: "Sarika Patel",
-    phone: "9876543217",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Sarika Patel",
+      email: "sarika@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/women/8.jpg"
+    },
+    profile: {
       location: "Mumbai, Maharashtra",
       experience: 8,
       languages: ["English", "Hindi", "Marathi", "Gujarati"],
@@ -277,13 +285,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "nikhil_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "nikhil@guides.com",
-    fullName: "Nikhil Sawant",
-    phone: "9876543218",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Nikhil Sawant",
+      email: "nikhil@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/men/9.jpg"
+    },
+    profile: {
       location: "Ratnagiri, Maharashtra",
       experience: 6,
       languages: ["English", "Hindi", "Marathi", "Konkani"],
@@ -293,13 +302,14 @@ const maharashtraGuides = [
     }
   },
   {
-    username: "tanvi_guide",
-    password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
-    email: "tanvi@guides.com",
-    fullName: "Tanvi Bhosale",
-    phone: "9876543219",
-    userType: "guide",
-    guideProfile: {
+    user: {
+      name: "Tanvi Bhosale",
+      email: "tanvi@guides.com",
+      password: "$2b$10$S4XBLz/HNLhXILB3AJB0s.jvUCHWBbRvUlGBTJAc11tGnjGtoFEKi", // password123
+      userType: "guide",
+      image: "https://randomuser.me/api/portraits/women/10.jpg"
+    },
+    profile: {
       location: "Shirdi, Maharashtra",
       experience: 5,
       languages: ["English", "Hindi", "Marathi"],
@@ -466,40 +476,45 @@ export async function seedDatabase() {
     await db.collection('places').deleteMany({});
     await db.collection('bookings').deleteMany({});
 
-    // Insert places
-    const placeResults = await Promise.all(
-      maharashtraAttractions.map(async (place) => {
-        const validatedPlace = placeSchema.omit({ id: true }).parse(place);
-        const result = await db.collection('places').insertOne(validatedPlace);
-        return { ...place, id: result.insertedId.toString() };
-      })
-    );
+    // Seed attractions
+    console.log("Seeding attractions...");
+    for (const attraction of maharashtraAttractions) {
+      const validatedAttraction = placeSchema.parse({
+        ...attraction,
+        id: new ObjectId().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await db.collection('places').insertOne(validatedAttraction);
+    }
+    console.log("Attractions seeded successfully");
 
-    // Insert guides and their profiles
-    const guideResults = await Promise.all(
-      maharashtraGuides.map(async (guide) => {
-        const { guideProfile, ...userData } = guide;
-        const validatedUser = userSchema.omit({ id: true }).parse(userData);
-        const userResult = await db.collection('users').insertOne(validatedUser);
-        
-        const validatedProfile = guideProfileSchema.omit({ id: true }).parse({
-          ...guideProfile,
-          userId: userResult.insertedId.toString()
-        });
-        const profileResult = await db.collection('guideProfiles').insertOne(validatedProfile);
-        
-        return {
-          user: { ...userData, id: userResult.insertedId.toString() },
-          profile: { ...guideProfile, id: profileResult.insertedId.toString() }
-        };
-      })
-    );
+    // Seed guides
+    console.log("Seeding guides...");
+    for (const guide of maharashtraGuides) {
+      // Create user
+      const validatedUser = userSchema.parse({
+        ...guide.user,
+        id: new ObjectId().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      const userResult = await db.collection('users').insertOne(validatedUser);
 
-    console.log('Database seeded successfully!');
-    console.log(`Inserted ${placeResults.length} places`);
-    console.log(`Inserted ${guideResults.length} guides with profiles`);
+      // Create guide profile
+      const validatedProfile = guideProfileSchema.parse({
+        ...guide.profile,
+        id: new ObjectId().toString(),
+        userId: userResult.insertedId.toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await db.collection('guideProfiles').insertOne(validatedProfile);
+    }
+    console.log("Guides seeded successfully");
+
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error("Error seeding database:", error);
     throw error;
   }
 }

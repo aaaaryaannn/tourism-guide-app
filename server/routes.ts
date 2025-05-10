@@ -1,7 +1,8 @@
-import type { Express } from "express";
+import express from 'express';
+import type { Request, Response } from 'express';
 import { createServer, type Server } from "http";
 import { storage } from "./storage.ts";
-import { db } from "./db.ts";
+import { db } from './db.js';
 import { 
   userSchema,
   guideProfileSchema,
@@ -17,10 +18,11 @@ import { fromZodError } from "zod-validation-error";
 import { Mistral } from '@mistralai/mistralai';
 import { Router } from "express";
 import { ObjectId } from "mongodb";
+import { Express } from 'express';
+import { IStorage } from './storage';
+import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Booking, Connection } from '../shared/schema';
 
-const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY || 'jRuxrXPaXaoCLMEarL3mJQH9GaGDjuZJ' });
-
-const router = Router();
+const router = express.Router();
 
 // Helper function to calculate distance between two coordinates in kilometers using Haversine formula
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -51,24 +53,429 @@ function generateRandomLocationNearby(baseLat: number, baseLng: number, maxDista
   };
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Add CORS middleware
-  app.use((req, res, next) => {
-    // Set CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+// Error handling middleware
+const handleError = (error: unknown, res: express.Response) => {
+  if (error instanceof z.ZodError) {
+    res.status(400).json({ error: fromZodError(error).message });
+  } else if (error instanceof Error) {
+    res.status(500).json({ error: error.message });
+  } else {
+    res.status(500).json({ error: 'An unknown error occurred' });
+  }
+};
+
+// Users
+router.get('/users', async (_req: Request, res: Response) => {
+  try {
+    const users = await db.collection('users').find().toArray();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+router.post('/users', async (req, res) => {
+  try {
+    const userData = {
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const validatedData = userSchema.parse(userData);
+    const existingUser = await storage.users.findOne({ email: validatedData.email });
     
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
     }
     
-    // Set content type for all responses to JSON
-    res.type('json');
-    
-    next();
+    const result = await storage.users.insertOne(validatedData);
+    const user = { ...validatedData, id: result.insertedId.toString() };
+    res.status(201).json(user);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: fromZodError(error).message });
+    } else {
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+// Guide Profiles
+router.get('/guides', async (_req: Request, res: Response) => {
+  try {
+    const guides = await db.collection('guide_profiles').find().toArray();
+    res.json(guides);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch guides' });
+  }
+});
+
+router.post('/guides', async (req, res) => {
+  try {
+    const guideProfileData = guideProfileSchema.parse(req.body);
+    const profile = await storage.createGuideProfile(guideProfileData);
+    res.status(201).json(profile);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+// Places
+router.get('/places', async (req, res) => {
+  try {
+    const places = await storage.getPlaces();
+    res.json(places);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+router.get('/places/:id', async (req, res) => {
+  try {
+    const placeId = new ObjectId(req.params.id);
+    const place = await storage.getPlace(placeId.toString());
+    if (!place) {
+      return res.status(404).json({ error: 'Place not found' });
+    }
+    res.json(place);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+router.post('/places', async (req, res) => {
+  try {
+    const placeData = placeSchema.parse(req.body);
+    const place = await storage.createPlace(placeData);
+    res.status(201).json(place);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+// AI Trip Planning
+router.post('/plan-trip', async (req: Request, res: Response) => {
+  try {
+    const { fromCity, toCity, numberOfPlaces, budget, tripType } = req.body;
+
+    const client = new Mistral({
+      apiKey: process.env.MISTRAL_API_KEY ?? ""
+    });
+
+    const prompt = `Plan a trip from ${fromCity} to ${toCity} with the following criteria:
+- Number of places to visit: ${numberOfPlaces}
+- Budget: ${budget}
+- Trip type: ${tripType}
+
+Please provide:
+1. A list of recommended places to visit
+2. Suggested itinerary
+3. Budget breakdown
+4. Travel tips`;
+
+    const response = await client.chat.complete({
+      model: "mistral-large-latest",
+      messages: [
+        {
+          role: "user" as const,
+          content: prompt,
+        },
+      ],
+    });
+
+    if (!response.choices?.[0]?.message?.content) {
+      return res.status(500).json({ message: "Failed to generate trip plan" });
+    }
+
+    res.json({ plan: response.choices[0].message.content });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate trip plan' });
+  }
+});
+
+// AI chat route
+router.post('/chat', async (req, res) => {
+  try {
+    const { fromCity, toCity, numberOfPlaces, budget, tripType } = req.body;
+
+    const client = new Mistral({
+      apiKey: process.env.MISTRAL_API_KEY ?? ""
+    });
+
+    const messages = [{
+      role: 'user' as const,
+      content: `Plan a trip from ${fromCity} to ${toCity} with the following criteria:
+- Number of places to visit: ${numberOfPlaces}
+- Budget: ${budget}
+- Trip type: ${tripType}
+
+Please provide:
+1. A suggested itinerary
+2. Estimated costs
+3. Travel tips`
+    }];
+
+    const response = await client.chat.complete({
+      model: "mistral-large-latest",
+      messages
+    });
+
+    if (!response.choices?.[0]?.message?.content) {
+      return res.status(500).json({ message: "Failed to generate response" });
+    }
+
+    res.json({ response: response.choices[0].message.content });
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+// Login route
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await storage.getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // TODO: Add proper password hashing and comparison
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    console.log("Login successful for user:", userWithoutPassword.name);
+    res.json(userWithoutPassword);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+// Itineraries
+router.post('/itineraries', async (req, res) => {
+  try {
+    const tripData = {
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const validatedData = itinerarySchema.parse(tripData);
+    const trip = await storage.createItinerary(validatedData);
+    res.status(201).json(trip);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
+export function setupRoutes(app: Express, storage: IStorage) {
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
+  // Get user by ID
+  app.get('/api/users/:id', async (req, res) => {
+    try {
+      const user = await storage.users.findOne({ _id: new ObjectId(req.params.id) });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error getting user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Create user
+  app.post('/api/users', async (req, res) => {
+    try {
+      const userData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      const validatedData = userSchema.parse(userData);
+      const existingUser = await storage.users.findOne({ email: validatedData.email });
+      
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already registered' });
+      }
+      
+      const result = await storage.users.insertOne(validatedData);
+      const user = { ...validatedData, id: result.insertedId.toString() };
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: fromZodError(error).message });
+      } else {
+        console.error('Error creating user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Create guide profile
+  app.post('/api/guides', async (req, res) => {
+    try {
+      const guideProfileData = guideProfileSchema.parse(req.body);
+      const result = await storage.guideProfiles.insertOne({
+        ...guideProfileData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const guideProfile = { ...guideProfileData, id: result.insertedId.toString() };
+      res.status(201).json(guideProfile);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: fromZodError(error).message });
+      } else {
+        console.error('Error creating guide profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Get places
+  app.get('/api/places', async (req, res) => {
+    try {
+      const places = await storage.places.find().toArray();
+      res.json(places);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Create place
+  app.post('/api/places', async (req, res) => {
+    try {
+      const placeData = placeSchema.parse(req.body);
+      const place = await storage.createPlace(placeData);
+      res.status(201).json(place);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Create itinerary
+  app.post('/api/itineraries', async (req, res) => {
+    try {
+      const itineraryData = itinerarySchema.parse({
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      const itinerary = await storage.createItinerary(itineraryData);
+      res.status(201).json(itinerary);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Add place to itinerary
+  app.post('/api/itineraries/:id/places', async (req, res) => {
+    try {
+      const itineraryPlaceData = itineraryPlaceSchema.parse({
+        ...req.body,
+        itineraryId: req.params.id
+      });
+      
+      const result = await storage.itineraryPlaces.insertOne(itineraryPlaceData);
+      res.json({ id: result.insertedId });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: fromZodError(error).message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Create booking
+  app.post('/api/bookings', async (req, res) => {
+    try {
+      const bookingData = bookingSchema.parse(req.body);
+      const result = await storage.bookings.insertOne(bookingData);
+      res.json({ id: result.insertedId });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: fromZodError(error).message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Create connection
+  router.post('/connections', async (req, res) => {
+    try {
+      const { userId, followerId, status } = req.body;
+      const connectionData = {
+        userId,
+        followerId,
+        status,
+        fromUserId: userId,
+        toUserId: followerId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      const connection = await storage.createConnection(connectionData);
+      res.status(201).json(connection);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Save place for user
+  app.post('/api/saved-places', async (req, res) => {
+    try {
+      const savedPlaceData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      const validatedSavedPlace = savedPlaceSchema.parse(savedPlaceData);
+      const result = await storage.savedPlaces.insertOne(validatedSavedPlace);
+      res.json({ id: result.insertedId });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Recommendations endpoint
+  app.post('/api/recommendations', async (req, res) => {
+    try {
+      const client = new Mistral({
+        apiKey: process.env.MISTRAL_API_KEY ?? ""
+      });
+      const { interests, location, duration } = req.body;
+
+      const response = await client.chat.complete({
+        model: "mistral-large-latest",
+        messages: [
+          {
+            role: "user" as const,
+            content: `Generate a personalized travel itinerary for ${location} with the following preferences: ${interests.join(', ')} and I'm planning to visit for ${duration} days. Can you suggest some places to visit and create an itinerary?`
+          }
+        ]
+      });
+
+      if (!response.choices?.[0]?.message?.content) {
+        return res.status(500).json({ message: "Failed to generate recommendations" });
+      }
+
+      res.json({ recommendations: response.choices[0].message.content });
+    } catch (error) {
+      res.status(500).json({ error: 'Error getting recommendations' });
+    }
   });
 
   // Nearby guides endpoint - returns 4-5 guides near the tourist's location
@@ -145,96 +552,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes
+  // User registration
   app.post("/api/auth/register", async (req, res) => {
     try {
       console.log("============ REGISTRATION REQUEST ============");
       console.log("Registration request body:", JSON.stringify(req.body, null, 2));
       
-      // Add defaults and sanitize data
-      const sanitizedData = {
+      const userData = {
         ...req.body,
-        // Ensure these fields exist with correct types
-        username: req.body.username || '',
-        email: req.body.email || '',
-        password: req.body.password || '',
-        fullName: req.body.fullName || '',
-        phone: req.body.phone || '',
-        userType: req.body.userType || 'tourist',
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
-      console.log("Sanitized data:", JSON.stringify(sanitizedData, null, 2));
+      console.log("Sanitized data:", JSON.stringify(userData, null, 2));
       
-      // Check if we're receiving the expected fields
-      if (!sanitizedData.username || !sanitizedData.email || !sanitizedData.password) {
+      if (!userData.email || !userData.password || !userData.name) {
         return res.status(400).json({ 
           message: "Missing required fields", 
-          received: Object.keys(sanitizedData) 
+          received: Object.keys(userData) 
         });
       }
       
       try {
-        // Use loose schema validation and strip unknown properties
-        const userData = userSchema.omit({ id: true, createdAt: true }).parse(sanitizedData);
-        console.log("Parsed user data:", JSON.stringify(userData, null, 2));
+        const validatedData = userSchema.omit({ id: true }).parse(userData);
+        console.log("Parsed user data:", JSON.stringify(validatedData, null, 2));
         
-        try {
-          // Check for existing user by email instead of username
-          const existingUser = await storage.getUserByEmail(userData.email);
-          console.log("Existing user check:", existingUser ? "User exists" : "User doesn't exist");
-          
-      if (existingUser) {
-            return res.status(400).json({ message: "Email already exists" });
-      }
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        console.log("Existing user check:", existingUser ? "User exists" : "User doesn't exist");
+        
+        if (existingUser) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
 
+        console.log("Creating user with data:", JSON.stringify(validatedData, null, 2));
+        const user = await storage.createUser(validatedData);
+        console.log("User created with ID:", user.id);
+
+        // If user is a guide, create guide profile
+        if (validatedData.userType === "guide" && req.body.guideProfile) {
           try {
-            console.log("Creating user with data:", JSON.stringify(userData, null, 2));
-      const user = await storage.createUser(userData);
-            console.log("User created with ID:", user.id);
+            console.log("Creating guide profile for user:", user.id);
+            const guideProfileData = guideProfileSchema.omit({ id: true }).parse({
+              ...req.body.guideProfile,
+              userId: user.id,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
 
-      // If user is a guide, create guide profile
-      if (userData.userType === "guide" && req.body.guideProfile) {
-              try {
-                console.log("Creating guide profile for user:", user.id);
-                const guideProfileData = guideProfileSchema.omit({ id: true }).parse({
-          ...req.body.guideProfile,
-          userId: user.id
-        });
-
-        await storage.createGuideProfile(guideProfileData);
-                console.log("Guide profile created");
-              } catch (guideProfileError) {
-                console.error("Error creating guide profile:", guideProfileError);
-                // Continue since the user was already created
-              }
-      }
-
-      // Don't return password
-      const { password, ...userWithoutPassword } = user;
-
-            console.log("Registration successful");
-            console.log("============ END REGISTRATION REQUEST ============");
-      return res.status(201).json(userWithoutPassword);
-          } catch (createUserError) {
-            console.error("Error creating user:", createUserError);
-            return res.status(500).json({ message: "Error creating user", error: String(createUserError) });
+            await storage.createGuideProfile(guideProfileData);
+            console.log("Guide profile created");
+          } catch (guideProfileError) {
+            console.error("Error creating guide profile:", guideProfileError);
           }
-        } catch (getUserError) {
-          console.error("Error checking for existing user:", getUserError);
-          return res.status(500).json({ message: "Error checking for existing user", error: String(getUserError) });
         }
-      } catch (parseError) {
-        console.error("Error parsing user data:", parseError);
-        if (parseError instanceof z.ZodError) {
-          console.error("Validation errors:", JSON.stringify(parseError.errors, null, 2));
-          return res.status(400).json({ message: "Invalid data", errors: parseError.errors });
-        }
-        return res.status(400).json({ message: "Error parsing user data", error: String(parseError) });
+
+        // Don't return password
+        const { password, ...userWithoutPassword } = user;
+
+        console.log("Registration successful");
+        console.log("============ END REGISTRATION REQUEST ============");
+        return res.status(201).json(userWithoutPassword);
+      } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({ message: "Server error" });
       }
-    } catch (outerError) {
-      console.error("Unhandled registration error:", outerError);
+    } catch (error) {
+      console.error("Unhandled registration error:", error);
       console.error("============ END REGISTRATION REQUEST WITH ERROR ============");
-      return res.status(500).json({ message: "Server error", error: String(outerError) });
+      return res.status(500).json({ message: "Server error" });
     }
   });
 
@@ -323,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _id: undefined // Remove MongoDB _id
       });
       
-      console.log("User found:", userWithStringId.username);
+      console.log("User found:", userWithStringId.name);
       
       // Verify password
       if (userWithStringId.password !== password) {
@@ -334,7 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create response without password
       const { password: _, ...userWithoutPassword } = userWithStringId;
 
-      console.log("Login successful for user:", userWithoutPassword.username);
+      console.log("Login successful for user:", userWithoutPassword.name);
       console.log("============ END LOGIN REQUEST ============");
       
       // Return user data in the format expected by client
@@ -389,8 +774,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.body.userId,
         title: req.body.title,
         description: req.body.description,
-        startDate: req.body.startDate,
-        endDate: req.body.endDate
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       const trip = await storage.createItinerary(tripData);
       return res.status(201).json(trip);
@@ -615,24 +1002,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/itineraries", async (req, res) => {
-    try {
-      console.log("Creating itinerary with data:", JSON.stringify(req.body, null, 2));
-      const itineraryData = itinerarySchema.parse(req.body);
-      console.log("Parsed itinerary data:", JSON.stringify(itineraryData, null, 2));
-      const itinerary = await storage.createItinerary(itineraryData);
-      console.log("Created itinerary:", JSON.stringify(itinerary, null, 2));
-      return res.status(201).json(itinerary);
-    } catch (error) {
-      console.error("Error creating itinerary:", error);
-      if (error instanceof z.ZodError) {
-        console.error("Validation errors:", JSON.stringify(error.errors, null, 2));
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-
   app.get("/api/itineraries/:id/places", async (req, res) => {
     try {
       const itineraryId = parseInt(req.params.id);
@@ -742,42 +1111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new connection
-  app.post("/api/connections", async (req, res) => {
-    try {
-      console.log("[API] Creating new connection with data:", req.body);
-      
-      // Validate request body against schema
-      const connectionData = connectionSchema.omit({ id: true }).parse(req.body);
-      console.log("[API] Validated connection data:", connectionData);
-      
-      // Create the connection
-      const connection = await storage.createConnection(connectionData);
-      console.log("[API] Connection created:", connection);
-      
-      // Ensure we're sending a JSON response
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(201).json(connection);
-    } catch (error) {
-      console.error("[API] Error creating connection:", error);
-      
-      // Ensure we're sending a JSON response
-      res.setHeader('Content-Type', 'application/json');
-      
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid connection data", 
-          errors: fromZodError(error).message 
-        });
-      }
-      
-      return res.status(500).json({ 
-        message: "Failed to create connection", 
-        error: String(error) 
-      });
-    }
-  });
-
   // Update connection status
   app.patch("/api/connections/:id", async (req, res) => {
     try {
@@ -804,138 +1137,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!connection) {
-        console.log(`[API] Connection not found with id ${id}`);
-        return res.status(404).json({ message: "Connection not found" });
+        console.log(`Connection with ID ${id} not found`);
+        return res.status(404).json({ message: 'Connection not found' });
       }
       
-      console.log(`[API] Found connection:`, connection);
-      
-      // Verify that the user has permission to update this connection
-      if (userId && connection.toUserId.toString() !== userId.toString()) {
-        console.log(`[API] User ${userId} not authorized to update connection ${id}`);
-        return res.status(403).json({ message: "Not authorized to update this connection" });
-      }
-      
-      // Update the connection status
+      // Update the connection status in the database
       const result = await db.collection('connections').updateOne(
-        { 
-          $or: [
-            { _id: new ObjectId(id) },
-            { id: id }
-          ]
-        },
-        { 
-          $set: { 
-            status,
-            updatedAt: new Date()
-          } 
-        }
+        { _id: new ObjectId(id) },
+        { $set: { status } }
       );
       
       if (result.matchedCount === 0) {
-        console.log(`[API] No connection matched for update`);
         return res.status(404).json({ message: "Connection not found" });
       }
       
-      console.log(`[API] Updated connection:`, result);
-      
-      // Get the updated connection
-      const updatedConnection = await db.collection('connections').findOne({ 
-        $or: [
-          { _id: new ObjectId(id) },
-          { id: id }
-        ]
-      });
-      
-      if (!updatedConnection) {
-        console.log(`[API] Updated connection not found`);
-        return res.status(404).json({ message: "Updated connection not found" });
-      }
-      
-      // Convert MongoDB _id to id for response
-      const { _id, ...connectionData } = updatedConnection;
-      
-      const response = {
-        ...connectionData,
-        id: _id.toString()
-      };
-      
-      console.log(`[API] Sending response:`, response);
-      
-      // Set content type to ensure JSON response
-      res.setHeader('Content-Type', 'application/json');
-      return res.json(response);
+      return res.json({ message: "Connection status updated successfully" });
     } catch (error) {
-      console.error("[API] Error updating connection:", error);
-      
-      // Set content type to ensure JSON response
-      res.setHeader('Content-Type', 'application/json');
-      
-      // Handle different types of errors
-      if (error instanceof Error) {
-        if (error.name === 'BSONError' || error.message.includes('ObjectId')) {
-          return res.status(400).json({ 
-            message: "Invalid connection ID format",
-            error: error.message
-          });
-        }
-      }
-      
-      return res.status(500).json({ 
-        message: "Failed to update connection", 
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Debug endpoint for connections
-  app.get("/api/debug/connections", async (req, res) => {
-    try {
-      // Get all connections from the database
-      const connections = await db.collection('connections').find({}).toArray();
-      
-      // Get all users for reference
-      const users = await db.collection('users').find({}).toArray();
-      const usersMap = new Map(users.map(user => [user._id.toString(), user]));
-      
-      // Map connections with user details
-      const mappedConnections = connections.map(conn => {
-        const fromUser = usersMap.get(conn.fromUserId.toString());
-        const toUser = usersMap.get(conn.toUserId.toString());
-        
-        return {
-          ...conn,
-          fromUser: fromUser ? {
-            id: fromUser._id.toString(),
-            fullName: fromUser.fullName,
-            email: fromUser.email,
-            userType: fromUser.userType
-          } : null,
-          toUser: toUser ? {
-            id: toUser._id.toString(),
-            fullName: toUser.fullName,
-            email: toUser.email,
-            userType: toUser.userType
-          } : null
-        };
-      });
-      
-      return res.json({
-        total: connections.length,
-        connections: mappedConnections,
-        users: users.map(user => ({
-          id: user._id.toString(),
-          fullName: user.fullName,
-          email: user.email,
-          userType: user.userType
-        }))
-      });
-    } catch (error) {
-      console.error("Error in debug endpoint:", error);
+      console.error("Error updating connection status:", error);
       return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
-
-  const server = createServer(app);
-  return server;
 }

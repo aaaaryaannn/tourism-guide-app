@@ -54,7 +54,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ login }) => {
       });
       
       // Redirect based on user role
-      if (user.isGuide) {
+      if (user.userType === 'guide') {
         setLocation("/guide-dashboard");
       } else {
         setLocation("/dashboard");

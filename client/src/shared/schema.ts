@@ -4,18 +4,16 @@ import { ObjectId } from 'mongodb';
 // User Schema
 export const userSchema = z.object({
   id: z.string(),
-  username: z.string().min(3),
+  name: z.string(),
   email: z.string().email(),
-  password: z.string().min(6),
-  fullName: z.string(),
-  phone: z.string(),
-  userType: z.enum(['tourist', 'guide', 'admin']),
+  password: z.string(),
+  userType: z.enum(['user', 'guide']),
+  image: z.string().optional(),
   currentLatitude: z.string().optional(),
   currentLongitude: z.string().optional(),
   lastLocationUpdate: z.date().optional(),
-  createdAt: z.date().optional(),
-  isGuide: z.boolean(),
-  guideProfile: z.lazy(() => guideProfileSchema).optional()
+  createdAt: z.date(),
+  updatedAt: z.date()
 }).passthrough(); // Allow unknown properties to pass through
 
 export type User = z.infer<typeof userSchema>;
@@ -36,14 +34,14 @@ export type GuideProfile = z.infer<typeof guideProfileSchema>;
 
 // Place Schema
 export const placeSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   name: z.string(),
   description: z.string(),
   location: z.string(),
-  category: z.enum(['attraction', 'hotel', 'restaurant', 'transport']),
-  latitude: z.string(),
-  longitude: z.string(),
+  category: z.enum(['monument', 'temple', 'heritage', 'nature', 'winery', 'beach', 'landmark', 'spiritual']),
   imageUrl: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
   // Wikimedia image information
   wikimediaThumbnailUrl: z.string().optional(),
   wikimediaDescription: z.string().optional(),
@@ -51,7 +49,7 @@ export const placeSchema = z.object({
   wikimediaAttributionUrl: z.string().optional(),
   wikimediaLicense: z.string().optional(),
   wikimediaLicenseUrl: z.string().optional()
-});
+}).passthrough();
 
 export type Place = z.infer<typeof placeSchema>;
 

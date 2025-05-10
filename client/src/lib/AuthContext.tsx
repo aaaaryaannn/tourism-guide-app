@@ -36,17 +36,15 @@ const setGlobalUser = (user: User | null) => {
 };
 
 // Helper function to create mock user data for demo logins
-export const createMockUser = (role: 'tourist' | 'guide'): User => {
+export const createMockUser = (role: 'user' | 'guide'): User => {
   return {
     id: role === 'guide' ? '101' : '102',
-    username: role,
+    name: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
     email: `${role}@example.com`,
     password: 'demo123',
-    fullName: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
-    phone: '+91 9876543210',
     userType: role,
-    isGuide: role === 'guide',
-    createdAt: new Date()
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
 };
 
@@ -88,7 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     try {
       // Create mock user based on username
-      const userData = createMockUser(username === 'guide' ? 'guide' : 'tourist');
+      const userData = createMockUser(username === 'guide' ? 'guide' : 'user');
       
       // Update state
       setUser(userData);

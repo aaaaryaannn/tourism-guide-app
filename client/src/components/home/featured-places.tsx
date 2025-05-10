@@ -41,10 +41,10 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
                   ...place,
                   imageUrl: imageInfo.thumbnailUrl, // Use as fallback image too
                   wikimediaThumbnailUrl: imageInfo.thumbnailUrl,
-                  wikimediaDescription: imageInfo.descriptionHtml,
-                  wikimediaArtist: imageInfo.artistName,
+                  wikimediaDescription: imageInfo.description,
+                  wikimediaArtist: imageInfo.artist,
                   wikimediaAttributionUrl: imageInfo.attributionUrl,
-                  wikimediaLicense: imageInfo.licenseName,
+                  wikimediaLicense: imageInfo.license,
                   wikimediaLicenseUrl: imageInfo.licenseUrl
                 };
                 hasUpdates = true;
@@ -117,17 +117,14 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
                   style={{ backgroundImage: `url(${place.wikimediaThumbnailUrl || place.imageUrl || ''})` }}
                 ></div>
                 {place.wikimediaAttributionUrl && (
-                  <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] p-1">
-                    <a 
-                      href={place.wikimediaAttributionUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      © {place.wikimediaArtist?.split(' ')[0] || 'Wikimedia'}
-                    </a>
-                  </div>
+                  <a
+                    href={place.wikimediaAttributionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    © {place.wikimediaArtist?.split(' ')[0] || 'Wikimedia'}
+                  </a>
                 )}
               </div>
               <div className="p-2">

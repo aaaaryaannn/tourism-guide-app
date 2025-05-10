@@ -35,6 +35,6 @@ export async function resetDatabase() {
 }
 
 // Run if called directly
-if (import.meta.url === import.meta.main) {
+if (process.argv[1] === import.meta.url) {
   resetDatabase().catch(console.error);
 } 

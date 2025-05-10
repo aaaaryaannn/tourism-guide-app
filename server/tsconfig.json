@@ -1,25 +1,24 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-    "rootDir": "./",
-    "strict": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Node",
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "baseUrl": "./",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@shared/*": ["../shared/*"]
     }
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "../shared/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "node_modules"
   ]
 } 

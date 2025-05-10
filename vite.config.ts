@@ -20,14 +20,23 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@": path.resolve(__dirname, './src'),
+      "@shared": path.resolve(__dirname, '../shared'),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  },
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: "dist",
     emptyOutDir: true,
+    sourcemap: true
   },
 });

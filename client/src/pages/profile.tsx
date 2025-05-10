@@ -71,7 +71,7 @@ const Profile: React.FC<ProfileProps> = ({ user, logout }) => {
           </svg>
         </div>
         <div>
-          <h3 className="font-medium text-lg">{user?.fullName || user?.username}</h3>
+          <h3 className="font-medium text-lg">{user?.name}</h3>
           <p className="text-gray-600 text-sm">{user?.email}</p>
           <p className="text-[#DC143C] text-sm font-medium">
             <svg

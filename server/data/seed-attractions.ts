@@ -1,11 +1,11 @@
-import { db } from "../db";
-import { places, users, guideProfiles } from "@shared/schema";
-import { maharashtraAttractions } from "./maharashtra-attractions";
-import { maharashtraGuides } from "./maharashtra-guides";
-import { log } from "../vite";
+import { db } from "../db.js";
+import { Place, User, GuideProfile } from "../../shared/schema.js";
+import { maharashtraAttractions } from "./maharashtra-attractions.js";
+import { maharashtraGuides } from "./maharashtra-guides.js";
+import { log } from "../vite.js";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import { getRandomLocation } from "../../client/src/lib/geolocation";
+import { getRandomLocation } from "../../client/src/lib/geolocation.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -18,8 +18,7 @@ async function hashPassword(password: string) {
 
 export async function seedAttractions() {
   // Check if we already have the full set of attractions
-  const existingPlacesCount = await db.select({ count: { value: places.id } }).from(places);
-  const count = Number(existingPlacesCount[0]?.count?.value || 0);
+  const count = await db.collection('places').countDocuments();
   
   if (count >= 50) {
     log("Attractions already seeded - skipping", "database");
@@ -29,13 +28,17 @@ export async function seedAttractions() {
   // Clear existing attractions if any
   if (count > 0) {
     log("Clearing existing attractions to seed new ones", "database");
-    await db.delete(places);
+    await db.collection('places').deleteMany({});
   }
   
   // Insert new attractions
   log(`Seeding ${maharashtraAttractions.length} attractions`, "database");
   for (const attraction of maharashtraAttractions) {
-    await db.insert(places).values(attraction);
+    await db.collection('places').insertOne({
+      ...attraction,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
   }
   
   log("Attractions seeded successfully", "database");
@@ -43,11 +46,7 @@ export async function seedAttractions() {
 
 export async function seedGuides() {
   // First, check how many guides we already have
-  const existingGuidesCount = await db.select({ count: { value: users.id } })
-    .from(users)
-    .where({ userType: "guide" });
-  
-  const count = Number(existingGuidesCount[0]?.count?.value || 0);
+  const count = await db.collection('users').countDocuments({ userType: "guide" });
   
   // If we already have more than 10 guides, don't add more
   if (count >= 10) {
@@ -56,10 +55,10 @@ export async function seedGuides() {
   }
   
   // Get some tourist locations to use as reference points for placing guides
-  const touristLocations = await db.select({
-    latitude: places.latitude,
-    longitude: places.longitude
-  }).from(places).limit(5);
+  const touristLocations = await db.collection('places')
+    .find({}, { projection: { latitude: 1, longitude: 1 } })
+    .limit(5)
+    .toArray();
   
   if (!touristLocations.length) {
     log("No places found to reference guide locations - skipping", "database");
@@ -84,18 +83,22 @@ export async function seedGuides() {
     );
     
     // Insert the guide user
-    const [insertedUser] = await db.insert(users).values({
+    const userResult = await db.collection('users').insertOne({
       ...guide.user,
       password: hashedPassword,
       currentLatitude: randomLocation.lat.toString(),
       currentLongitude: randomLocation.lng.toString(),
-      lastLocationUpdate: new Date()
-    }).returning();
+      lastLocationUpdate: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
     
     // Insert guide profile with the user ID
-    await db.insert(guideProfiles).values({
+    await db.collection('guideProfiles').insertOne({
       ...guide.profile,
-      userId: insertedUser.id
+      userId: userResult.insertedId.toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
   }
   

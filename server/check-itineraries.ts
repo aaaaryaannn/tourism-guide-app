@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { initializeDatabase } from "./db";
+import { ObjectId } from "mongodb";
 
 async function checkItineraries() {
   try {
@@ -75,8 +76,8 @@ async function checkItineraries() {
             const itineraryPlaces = places.filter(place => {
               try {
                 return place.itineraryId?.toString() === itinerary._id?.toString();
-              } catch (e) {
-                console.log(`Error comparing itineraryId: ${e.message}`);
+              } catch (error) {
+                console.log(`Error comparing itineraryId: ${error instanceof Error ? error.message : String(error)}`);
                 return false;
               }
             });
@@ -85,15 +86,15 @@ async function checkItineraries() {
             for (const place of itineraryPlaces) {
               try {
                 // Get place details from places collection
-                const placeDetails = await db.collection('places').findOne({ _id: place.placeId });
+                const placeDetails = await db.collection('places').findOne({ _id: new ObjectId(place.placeId) });
                 if (placeDetails) {
                   console.log(`- Place: ${placeDetails.name} (order: ${place.order})`);
                   console.log(`  Details: ${JSON.stringify(placeDetails, null, 2)}`);
                 } else {
                   console.log(`- Place: Unknown (ID: ${place.placeId}, order: ${place.order})`);
                 }
-              } catch (e) {
-                console.log(`Error fetching place details: ${e.message}`);
+              } catch (error) {
+                console.log(`Error fetching place details: ${error instanceof Error ? error.message : String(error)}`);
               }
             }
           }
@@ -107,24 +108,24 @@ async function checkItineraries() {
       for (const itinerary of itineraries) {
         if (itinerary.createdBy) {
           try {
-            const user = await db.collection('users').findOne({ _id: itinerary.createdBy });
+            const user = await db.collection('users').findOne({ _id: new ObjectId(itinerary.createdBy) });
             if (user) {
               console.log(`Itinerary "${itinerary.title || 'Untitled'}" was created by user:`);
-              console.log(`  Username: ${user.username}`);
+              console.log(`  Name: ${user.name}`);
               console.log(`  Email: ${user.email}`);
               console.log(`  User Type: ${user.userType}`);
               console.log(`  User ID: ${user._id}`);
             } else {
               console.log(`Itinerary "${itinerary.title || 'Untitled'}" creator (ID: ${itinerary.createdBy}) not found in users collection`);
             }
-          } catch (e) {
-            console.log(`Error looking up itinerary creator: ${e.message}`);
+          } catch (error) {
+            console.log(`Error looking up itinerary creator: ${error instanceof Error ? error.message : String(error)}`);
             // If the error is due to createdBy not being an ObjectId, try string comparison
             console.log("Attempting to find user by string ID comparison...");
             const users = await db.collection('users').find().toArray();
             const creator = users.find(user => user._id.toString() === itinerary.createdBy.toString());
             if (creator) {
-              console.log(`Found creator by string comparison: ${creator.username} (${creator._id})`);
+              console.log(`Found creator by string comparison: ${creator.name} (${creator._id})`);
             } else {
               console.log("Could not find creator by string comparison either");
             }
@@ -140,7 +141,7 @@ async function checkItineraries() {
     console.log("\nDone!");
     process.exit(0);
   } catch (error) {
-    console.error("Error checking itineraries:", error);
+    console.error("Error checking itineraries:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
