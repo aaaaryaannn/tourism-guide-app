@@ -121,35 +121,6 @@ const Dashboard: React.FC = () => {
         />
       </div>
       
-      <style>
-        .bottom-sheet-dragging {
-          overflow: hidden !important;
-        }
-        
-        .bottom-sheet-drag {
-          cursor: grab;
-          touch-action: none !important;
-        }
-        
-        .bottom-sheet-drag:active {
-          cursor: grabbing;
-        }
-        
-        .bottom-sheet-drag .w-16 {
-          position: relative;
-          z-index: 9999;
-          pointer-events: auto !important;
-        }
-        
-        .leaflet-container {
-          z-index: 1;
-        }
-        
-        .leaflet-control-container {
-          z-index: 10;
-        }
-      </style>
-      
       {/* Bottom Navigation */}
       <BottomNavigation />
     </div>

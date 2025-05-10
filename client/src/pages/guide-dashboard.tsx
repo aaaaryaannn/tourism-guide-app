@@ -354,37 +354,6 @@ const GuideDashboard: React.FC = () => {
       />
       </div>
 
-      {/* Add some CSS to ensure the bottom sheet is over the map but doesn't affect it */}
-      <style>{`
-        .bottom-sheet-dragging {
-          overflow: hidden !important;
-        }
-        .bottom-sheet-drag {
-          cursor: grab;
-          touch-action: none !important;
-        }
-        
-        .bottom-sheet-drag:active {
-          cursor: grabbing;
-        }
-        
-        /* Style the drag handle to make it more visible */
-        .bottom-sheet-drag .w-16 {
-          position: relative;
-          z-index: 9999;
-          pointer-events: auto !important;
-        }
-        
-        /* Fix any map positioning issues */
-        .leaflet-container {
-          z-index: 1;
-        }
-        
-        .leaflet-control-container {
-          z-index: 10;
-        }
-      `}</style>
-
       {/* Bottom Navigation - Higher z-index */}
       <div className="absolute bottom-0 left-0 right-0 z-30">
         <GuideBottomNavigation />
