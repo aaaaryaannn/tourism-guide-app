@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import BottomNavigation from "@/components/bottom-navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Itinerary, User } from "@/shared/schema";
+import { User } from "@/shared/schema";
 // Global auth state is used instead of AuthContext
 
 const tripSchema = z.object({
@@ -38,6 +38,21 @@ const tripSchema = z.object({
 
 type TripFormValues = z.infer<typeof tripSchema>;
 
+// Define the itinerary interface
+interface ItineraryData {
+  id?: string;
+  userId: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  fromCity?: string;
+  toCity?: string;
+  numberOfPlaces?: number;
+  budget?: string;
+  tripType?: 'historical' | 'food' | 'adventure' | 'cultural' | 'picnic' | 'nature' | 'other';
+}
+
 const TripPlanner: React.FC = () => {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
@@ -59,19 +74,7 @@ const TripPlanner: React.FC = () => {
     }
   }, [user, setLocation, toast]);
   
-  const { data: itineraries, isLoading } = useQuery<Array<{
-    id?: string;
-    userId: string;
-    title: string;
-    description?: string;
-    startDate: string | Date;
-    endDate?: string | Date;
-    fromCity?: string;
-    toCity?: string;
-    numberOfPlaces?: number;
-    budget?: string;
-    tripType?: 'historical' | 'food' | 'adventure' | 'cultural' | 'picnic' | 'nature' | 'other';
-  }>>({
+  const { data: itineraries, isLoading } = useQuery<ItineraryData[]>({
     queryKey: ['/api/users', user?.id, 'itineraries'],
     queryFn: async () => {
       const response = await fetch(`/api/users/${user?.id}/itineraries`);
@@ -421,26 +424,14 @@ const TripPlanner: React.FC = () => {
               </div>
             ) : itineraries && itineraries.length > 0 ? (
               <div className="space-y-3">
-                {itineraries.map((itinerary: {
-                  id?: string;
-                  userId: string;
-                  title: string;
-                  description?: string;
-                  startDate: string | Date;
-                  endDate?: string | Date;
-                  fromCity?: string;
-                  toCity?: string;
-                  numberOfPlaces?: number;
-                  budget?: string;
-                  tripType?: 'historical' | 'food' | 'adventure' | 'cultural' | 'picnic' | 'nature' | 'other';
-                }) => (
+                {itineraries.map((itinerary: ItineraryData) => (
                   <div key={itinerary.id} className="bg-white rounded-lg shadow-md p-4">
                     <h4 className="font-medium">{itinerary.title}</h4>
                     <p className="text-sm text-gray-500 mt-1">{itinerary.description}</p>
                     <div className="flex justify-between items-center mt-2 text-sm">
                       <span className="text-gray-600">
-                        {itinerary.startDate ? format(itinerary.startDate instanceof Date ? itinerary.startDate : new Date(itinerary.startDate), "dd MMM yyyy") : ""}
-                        {itinerary.endDate ? ` - ${format(itinerary.endDate instanceof Date ? itinerary.endDate : new Date(itinerary.endDate), "dd MMM yyyy")}` : ""}
+                        {itinerary.startDate ? format(new Date(itinerary.startDate), "dd MMM yyyy") : ""}
+                        {itinerary.endDate ? ` - ${format(new Date(itinerary.endDate), "dd MMM yyyy")}` : ""}
                       </span>
                       <Button size="sm" variant="outline">View Details</Button>
                     </div>
