@@ -11,28 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { LogOut, Mail, Phone } from "lucide-react";
-
-// Define user interface based on auth context
-interface User {
-  id: number | string;
-  username: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  isGuide: boolean;
-}
-
-interface GuideProfile {
-  id: string;
-  userId: string;
-  location: string;
-  specialties: string[];
-  languages: string[];
-  experience: number;
-  rating: number;
-  bio: string;
-}
+import { User, GuideProfile as GuideProfileType } from "../../shared/schema";
 
 const GuideProfile = () => {
   const [_, setLocation] = useLocation();
@@ -85,7 +64,7 @@ const GuideProfile = () => {
   });
 
   // Fetch guide profile
-  const { data: profile, isLoading } = useQuery<GuideProfile>({
+  const { data: profile, isLoading } = useQuery<GuideProfileType>({
     queryKey: ['/api/guide', user?.id, 'profile'],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/guide/${user?.id}/profile`);
@@ -167,10 +146,10 @@ const GuideProfile = () => {
               <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} />
-                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+                  <AvatarFallback>{user?.fullName?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{user?.name}</h3>
+                  <h3 className="text-lg font-semibold">{user?.fullName}</h3>
                   <p className="text-sm text-gray-500">@{user?.username}</p>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <Mail className="w-4 h-4 mr-1" />
@@ -259,15 +238,15 @@ const GuideProfile = () => {
               <Textarea
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Tell tourists about yourself..."
+                placeholder="Tell us about yourself and your guiding experience"
                 rows={4}
               />
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
-              className="w-full"
+            <Button
+              type="submit"
+              className="w-full bg-[#DC143C] hover:bg-[#B01030]"
               disabled={updateProfile.isLoading}
             >
               {updateProfile.isLoading ? "Updating..." : "Update Profile"}
