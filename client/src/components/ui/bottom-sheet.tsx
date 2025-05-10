@@ -36,7 +36,6 @@ const BottomSheet = React.forwardRef<
     const isDragging = React.useRef(false);
     const startY = React.useRef(0);
     const [currentSnapPoint, setCurrentSnapPoint] = React.useState(defaultSnapPoint);
-    const sheetRef = React.useRef<HTMLDivElement>(null);
     const [sheetHeight, setSheetHeight] = React.useState(0);
 
     React.useEffect(() => {
@@ -117,16 +116,16 @@ const BottomSheet = React.forwardRef<
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.1}
-              onDragStart={(e) => {
+              onDragStart={(e: any) => {
                 isDragging.current = true;
-                startY.current = e.clientY;
+                startY.current = 'clientY' in e ? e.clientY : (e.touches ? e.touches[0].clientY : 0);
               }}
-              onDrag={(e, info) => {
+              onDrag={(e: any, info: any) => {
                 if (contentRef.current) {
                   contentRef.current.style.overflow = 'hidden';
                 }
               }}
-              onDragEnd={(e, info) => {
+              onDragEnd={(e: any, info: any) => {
                 isDragging.current = false;
                 if (contentRef.current) {
                   contentRef.current.style.overflow = 'auto';

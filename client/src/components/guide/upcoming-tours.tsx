@@ -68,7 +68,7 @@ const UpcomingTours: React.FC = () => {
         </Card>
       ) : (
         <>
-          {displayTours.map((tour) => (
+          {displayTours.map((tour: any) => (
             <Card
               key={tour.id}
               className="mb-3 hover:shadow-md transition-shadow cursor-pointer"

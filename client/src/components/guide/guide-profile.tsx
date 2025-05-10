@@ -191,9 +191,9 @@ const GuideProfile: React.FC = () => {
           <Button
             type="submit"
             className="w-full bg-[#DC143C] hover:bg-[#B01030]"
-            disabled={updateProfile.isPending}
+            disabled={updateProfile.isLoading}
           >
-            {updateProfile.isPending ? "Updating..." : "Update Profile"}
+            {updateProfile.isLoading ? "Updating..." : "Update Profile"}
           </Button>
         </form>
       </div>

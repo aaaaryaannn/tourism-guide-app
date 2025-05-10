@@ -59,9 +59,9 @@ export const itinerarySchema = z.object({
   userId: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  startDate: z.union([z.date(), z.string()]).transform(val => 
+  startDate: z.union([z.date(), z.string()]).transform((val: unknown) => 
     typeof val === 'string' ? new Date(val) : val),
-  endDate: z.union([z.date(), z.string()]).transform(val => 
+  endDate: z.union([z.date(), z.string()]).transform((val: unknown) => 
     typeof val === 'string' ? new Date(val) : val).optional(),
   createdAt: z.date().optional(),
   // Trip planner fields
@@ -79,7 +79,7 @@ export const itineraryPlaceSchema = z.object({
   id: z.string().optional(),
   itineraryId: z.string(),
   placeId: z.string(),
-  visitDate: z.union([z.date(), z.string()]).transform(val => 
+  visitDate: z.union([z.date(), z.string()]).transform((val: unknown) => 
     typeof val === 'string' ? new Date(val) : val),
   notes: z.string().optional()
 });
@@ -93,9 +93,9 @@ export const bookingSchema = z.object({
   userId: z.string(),
   from: z.string(),
   to: z.string(),
-  departureDate: z.union([z.date(), z.string()]).transform(val => 
+  departureDate: z.union([z.date(), z.string()]).transform((val: unknown) => 
     typeof val === 'string' ? new Date(val) : val),
-  returnDate: z.union([z.date(), z.string()]).transform(val => 
+  returnDate: z.union([z.date(), z.string()]).transform((val: unknown) => 
     typeof val === 'string' ? new Date(val) : val).optional(),
   passengers: z.number().optional(),
   roomCount: z.number().optional(),

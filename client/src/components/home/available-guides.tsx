@@ -102,7 +102,7 @@ export default function AvailableGuides() {
       } catch (error) {
         console.error("Error in request:", error);
         // Add request URL to error message for debugging
-        throw new Error(`Failed to send request to /api/connections: ${error.message}`);
+        throw new Error(`Failed to send request to /api/connections: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
     onSuccess: (data) => {
@@ -281,9 +281,9 @@ export default function AvailableGuides() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
             <Button 
               onClick={handleSendRequest} 
-              disabled={sendRequest.isPending || !tripCity.trim()}
+              disabled={sendRequest.isLoading || !tripCity.trim()}
             >
-              {sendRequest.isPending ? "Sending..." : "Send Request"}
+              {sendRequest.isLoading ? "Sending..." : "Send Request"}
             </Button>
           </DialogFooter>
         </DialogContent>
