@@ -24,10 +24,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './client/package-lock.json'
 
-      - name: Install and build client
+      - name: Clean install in client
+        run: |
+          rm -rf node_modules package-lock.json
+          cd client
+          rm -rf node_modules package-lock.json
+          npm install
+
+      - name: Build client
         run: |
           cd client
-          npm ci
           npm run build
 
       - name: Upload artifact
