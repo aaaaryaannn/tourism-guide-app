@@ -14,7 +14,8 @@ export const userSchema = z.object({
   currentLongitude: z.string().optional(),
   lastLocationUpdate: z.date().optional(),
   createdAt: z.date().optional(),
-  isGuide: z.boolean()
+  isGuide: z.boolean(),
+  guideProfile: z.lazy(() => guideProfileSchema).optional()
 }).passthrough(); // Allow unknown properties to pass through
 
 export type User = z.infer<typeof userSchema>;
