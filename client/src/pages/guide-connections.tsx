@@ -24,34 +24,51 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, MessageSquare } from "lucide-react";
-import type { User } from "../shared/schema";
+import type { User as SchemaUser } from "../shared/schema";
 
 // Guide profile interface
 interface GuideProfile {
-  id: number | string;
-  userId: number | string;
+  id: string;
+  userId: string;
   location: string;
   specialties: string[];
   languages: string[];
   experience: number;
   rating: number;
   bio: string;
+  reviews?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// User interface
+interface User extends SchemaUser {
+  // Add any additional properties needed
 }
 
 // Connection interface
 interface Connection {
-  id: number | string;
-  fromUserId: string | number;
-  toUserId: string | number;
+  id: string;
+  userId: string;
+  followerId: string;
   status: 'pending' | 'accepted' | 'rejected';
-  message: string;
+  message?: string;
   tripDetails?: string;
   budget?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   fromUser?: User;
   toUser?: User;
   guideProfile?: GuideProfile;
+}
+
+interface ExtendedUser extends SchemaUser {
+  phone?: string;
+  guideProfile?: GuideProfile;
+}
+
+interface Tourist extends ExtendedUser {
+  phone?: string;
 }
 
 const GuideConnections: React.FC = () => {
@@ -127,7 +144,7 @@ const GuideConnections: React.FC = () => {
         
         // Log specific guide-related connections
         const guideConnections = data.filter((c: Connection) => 
-          c.toUserId?.toString() === currentUser?.id?.toString()
+          c.toUser?.id?.toString() === currentUser?.id?.toString()
         );
         console.log("[DEBUG] Guide's incoming connections:", guideConnections);
         
@@ -181,7 +198,7 @@ const GuideConnections: React.FC = () => {
   
   // Update connection status mutation with improved handling
   const updateConnectionStatus = useMutation({
-    mutationFn: async ({ connectionId, status }: { connectionId: number | string; status: string }) => {
+    mutationFn: async ({ connectionId, status }: { connectionId: string; status: string }) => {
       console.log("[DEBUG] Updating connection status:", { connectionId, status });
       try {
         const response = await apiRequest("PATCH", `/api/connections/${connectionId}`, { 
@@ -230,7 +247,7 @@ const GuideConnections: React.FC = () => {
   });
 
   // Handle accepting a connection request (for guides)
-  const handleAcceptRequest = async (connectionId: number | string) => {
+  const handleAcceptRequest = async (connectionId: string) => {
     try {
       console.log("[DEBUG] Accepting connection request:", connectionId);
       toast({
@@ -265,7 +282,7 @@ const GuideConnections: React.FC = () => {
   };
 
   // Handle rejecting a connection request (for guides)
-  const handleRejectRequest = async (connectionId: number | string) => {
+  const handleRejectRequest = async (connectionId: string) => {
     try {
       console.log("[DEBUG] Rejecting connection request:", connectionId);
       toast({
@@ -325,13 +342,13 @@ const GuideConnections: React.FC = () => {
       if (result.isSuccess) {
         // Update the counts for better feedback
         const pendingCount = result.data?.filter(c => 
-          c.status === 'pending' && c.toUserId?.toString() === currentUser?.id?.toString()
+          c.status === 'pending' && c.toUser?.id?.toString() === currentUser?.id?.toString()
         ).length || 0;
         
         const acceptedCount = result.data?.filter(c => 
           c.status === 'accepted' && (
-            c.toUserId?.toString() === currentUser?.id?.toString() || 
-            c.fromUserId?.toString() === currentUser?.id?.toString()
+            c.toUser?.id?.toString() === currentUser?.id?.toString() || 
+            c.fromUser?.id?.toString() === currentUser?.id?.toString()
           )
         ).length || 0;
         
@@ -361,7 +378,7 @@ const GuideConnections: React.FC = () => {
   const pendingConnections = connections.filter(c => {
     // Only show pending connections where the current guide is the receiver (toUserId)
     const isPending = c.status === 'pending';
-    const isForGuide = c.toUserId?.toString() === currentUser?.id?.toString();
+    const isForGuide = c.toUser?.id?.toString() === currentUser?.id?.toString();
     
     if (isPending && isForGuide) {
       console.log("[DEBUG] Found pending connection for guide:", c.id);
@@ -374,8 +391,8 @@ const GuideConnections: React.FC = () => {
   const acceptedConnections = connections.filter(c => {
     const isAccepted = c.status === 'accepted';
     const isGuideInvolved = (
-      c.toUserId?.toString() === currentUser?.id?.toString() || 
-      c.fromUserId?.toString() === currentUser?.id?.toString()
+      c.toUser?.id?.toString() === currentUser?.id?.toString() || 
+      c.fromUser?.id?.toString() === currentUser?.id?.toString()
     );
     
     return isAccepted && isGuideInvolved;
@@ -384,7 +401,7 @@ const GuideConnections: React.FC = () => {
   // Only show rejected connections where the current guide rejected them
   const rejectedConnections = connections.filter(c => {
     const isRejected = c.status === 'rejected';
-    const wasForGuide = c.toUserId?.toString() === currentUser?.id?.toString();
+    const wasForGuide = c.toUser?.id?.toString() === currentUser?.id?.toString();
     
     return isRejected && wasForGuide;
   });
@@ -395,15 +412,15 @@ const GuideConnections: React.FC = () => {
       // Log all connection IDs for debugging
       console.log("[DEBUG] All connections:", connections.map(c => ({
         id: c.id,
-        fromUserId: c.fromUserId,
-        toUserId: c.toUserId,
+        fromUserId: c.fromUser?.id,
+        toUserId: c.toUser?.id,
         status: c.status
       })));
       
       // Log guides connections
       console.log("[DEBUG] Connection counts:", {
         total: connections.length,
-        forGuide: connections.filter(c => c.toUserId?.toString() === currentUser?.id?.toString()).length,
+        forGuide: connections.filter(c => c.toUser?.id?.toString() === currentUser?.id?.toString()).length,
         pending: pendingConnections.length,
         accepted: acceptedConnections.length,
         rejected: rejectedConnections.length
@@ -480,13 +497,13 @@ const GuideConnections: React.FC = () => {
         
         const relevantDbConnections = data.connections.filter((conn: any) => 
           // Pending: where guide is recipient
-          (conn.status === 'pending' && stringifyId(conn.toUserId) === currentUserIdStr) ||
+          (conn.status === 'pending' && stringifyId(conn.toUser?.id) === currentUserIdStr) ||
           // Accepted: where guide is involved (recipient or sender)
           (conn.status === 'accepted' && 
-            (stringifyId(conn.toUserId) === currentUserIdStr || 
-             stringifyId(conn.fromUserId) === currentUserIdStr)) ||
+            (stringifyId(conn.toUser?.id) === currentUserIdStr || 
+             stringifyId(conn.fromUser?.id) === currentUserIdStr)) ||
           // Rejected: where guide is recipient 
-          (conn.status === 'rejected' && stringifyId(conn.toUserId) === currentUserIdStr)
+          (conn.status === 'rejected' && stringifyId(conn.toUser?.id) === currentUserIdStr)
         );
         
         const uiConnectionIds = new Set(connections.map(c => stringifyId(c.id)));
@@ -542,7 +559,7 @@ const GuideConnections: React.FC = () => {
     console.log("[CHAT] Opening WhatsApp chat for connection:", connection.id);
     
     // Get the tourist's phone number
-    const tourist = getConnectionUser(connection);
+    const tourist = getConnectionUser(connection) as Tourist;
     if (!tourist?.phone) {
       toast({
         title: "No phone number",
@@ -554,7 +571,7 @@ const GuideConnections: React.FC = () => {
 
     // Format phone number for WhatsApp URL
     // Remove any non-digit characters and ensure it starts with country code
-    const formattedPhone = tourist.phone.replace(/\D/g, '');
+    const formattedPhone = tourist?.phone ? tourist.phone.replace(/\D/g, '') : '';
     
     // Create custom message
     const customMessage = `Hello I am ${currentUser?.fullName || 'your guide'}, from Tour Guide App. Let's talk about the trip`;
@@ -636,12 +653,12 @@ const GuideConnections: React.FC = () => {
     connections.forEach((c: Connection, i: number) => {
       console.log(`[DEBUG CONNECTIONS] Connection ${i+1}:`, {
         id: c.id,
-        fromUser: c.fromUser?.fullName,
-        toUser: c.toUser?.fullName,
-        fromUserId: c.fromUserId,
-        toUserId: c.toUserId,
+        fromUser: c.fromUser?.name,
+        toUser: c.toUser?.name,
+        fromUserId: c.fromUser?.id,
+        toUserId: c.toUser?.id,
         status: c.status,
-        message: c.message?.substring(0, 20) + (c.message?.length > 20 ? '...' : ''),
+        message: c.message ? (c.message.length > 20 ? c.message.substring(0, 20) + '...' : c.message) : '',
         createdAt: c.createdAt
       });
     });
@@ -768,7 +785,7 @@ const GuideConnections: React.FC = () => {
                   ) : (
                     <div className="space-y-4">
                       {pendingConnections.map((connection) => {
-                        const tourist = getConnectionUser(connection);
+                        const tourist = getConnectionUser(connection) as Tourist;
                         return (
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
@@ -874,7 +891,7 @@ const GuideConnections: React.FC = () => {
                   ) : (
                     <div className="space-y-4">
                       {acceptedConnections.map((connection) => {
-                        const tourist = getConnectionUser(connection);
+                        const tourist = getConnectionUser(connection) as Tourist;
                         return (
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">
@@ -909,7 +926,7 @@ const GuideConnections: React.FC = () => {
                   >
                                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                   </svg>
-                                  {tourist.phone}
+                                  <span>{tourist?.phone || 'No phone number'}</span>
                                 </p>
                               ) : (
                                 <p className="text-gray-500 italic mb-1">No phone number provided</p>
@@ -974,7 +991,7 @@ const GuideConnections: React.FC = () => {
                   ) : (
                     <div className="space-y-4">
                       {rejectedConnections.map((connection) => {
-                        const tourist = getConnectionUser(connection);
+                        const tourist = getConnectionUser(connection) as Tourist;
                         return (
                           <div key={connection.id} className="bg-white rounded-lg shadow-md p-4">
                             <div className="flex items-center mb-3">

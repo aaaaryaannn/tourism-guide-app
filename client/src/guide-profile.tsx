@@ -11,11 +11,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
-import { User, GuideProfile as GuideProfileType } from "@/shared/schema";
+import { User, GuideProfile as GuideProfileType, ExtendedUser } from "@/shared/schema";
+import { PhoneIcon } from "@heroicons/react/24/outline";
 
 const GuideProfile: React.FC = () => {
   const [_, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user: currentUser, isLoading: authLoading, logout } = useAuth();
+  const user = currentUser as ExtendedUser;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -99,13 +101,21 @@ const GuideProfile: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Profile Picture */}
           <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} />
-              <AvatarFallback>{user?.fullName?.[0]}</AvatarFallback>
+            <Avatar>
+              <AvatarImage src={user?.image || ''} alt={user?.name || 'User'} />
+              <AvatarFallback>
+                {user?.name ? user.name.charAt(0) : (user?.username ? user.username.charAt(0) : 'U')}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold">{user?.fullName}</h3>
-              <p className="text-sm text-gray-500">@{user?.username}</p>
+              <h3 className="text-lg font-semibold">{user?.name || 'Anonymous'}</h3>
+              <p className="text-sm text-gray-500">@{user?.username || user?.email || 'anonymous'}</p>
+              {user?.phone && (
+                <div className="flex items-center mt-1 text-sm text-gray-600">
+                  <PhoneIcon className="w-4 h-4 mr-1" />
+                  <span>{user.phone}</span>
+                </div>
+              )}
             </div>
           </div>
 

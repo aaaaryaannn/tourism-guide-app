@@ -1,23 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "../shared/schema";
 
+interface ExtendedUser extends User {
+  isGuide?: boolean;
+  username?: string;
+}
+
 // Auth context type
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<User | null>;
   logout: () => void;
   isLoading: boolean;
   isLoggedIn: boolean;
 }
 
 // Create the auth context
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  login: async () => { throw new Error("AuthProvider not initialized"); },
-  logout: () => {},
-  isLoading: false,
-  isLoggedIn: false
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Auth provider props
 interface AuthProviderProps {
@@ -25,7 +24,7 @@ interface AuthProviderProps {
 }
 
 // Set user in global window object for compatibility with existing components
-const setGlobalUser = (user: User | null) => {
+const setGlobalUser = (user: ExtendedUser | null) => {
   if (user) {
     (window as any).auth = { user };
     console.log("Set global user in window.auth:", user);
@@ -36,16 +35,20 @@ const setGlobalUser = (user: User | null) => {
 };
 
 // Helper function to create mock user data for demo logins
-export const createMockUser = (role: 'user' | 'guide'): User => {
-  return {
+export const createMockUser = (role: 'user' | 'guide'): ExtendedUser => {
+  const mockUser = {
     id: role === 'guide' ? '101' : '102',
     name: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
     email: `${role}@example.com`,
     password: 'demo123',
     userType: role,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    image: 'https://example.com/avatar.jpg',
+    phone: '+1234567890',
+    username: role === 'guide' ? 'johndoe' : undefined
   };
+  return mockUser;
 };
 
 // Auth provider component
@@ -80,32 +83,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // Login function
-  const login = async (username: string, password: string): Promise<User> => {
-    console.log("Login attempt for:", username);
+  const login = async (email: string, password: string): Promise<User | null> => {
+    console.log("Login attempt for:", email);
     setIsLoading(true);
     
     try {
-      // Create mock user based on username
-      const userData = createMockUser(username === 'guide' ? 'guide' : 'user');
-      
-      // Update state
-      setUser(userData);
-      
-      // Set in global window object
-      setGlobalUser(userData);
-      
-      // Save to localStorage
-      localStorage.setItem("user", JSON.stringify(userData));
-      
-      console.log("Login success with user data:", userData);
-      
-      // Short delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      return userData;
+      // Your login logic here
+      const user = createMockUser('guide'); // Replace with actual login logic
+      setUser(user);
+      return user;
     } catch (error: any) {
       console.error("Login failed:", error.message || error);
-      throw new Error(error.message || "Authentication failed");
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -156,5 +145,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // Hook to use the auth context
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 }

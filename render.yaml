@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: tourism-guide-app
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://aaaaryaannn:r9J2T4WMCNMjmJGm@tga.ajmql56.mongodb.net/maharashtra_tour_guide?retryWrites=true&w=majority&appName=TGA
+      - key: MISTRAL_API_KEY
+        value: jRuxrXPaXaoCLMEarL3mJQH9GaGDjuZJ
+      - key: PORT
+        value: 3000
+    healthCheckPath: /api/health
+    autoDeploy: true 

@@ -11,11 +11,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { LogOut, Mail, Phone } from "lucide-react";
-import { User, GuideProfile as GuideProfileType } from "@/shared/schema";
+import { User, GuideProfile as GuideProfileType } from "@shared/schema";
+
+interface ExtendedUser extends User {
+  username?: string;
+  phone?: string;
+  isGuide?: boolean;
+}
 
 const GuideProfile = () => {
   const [_, setLocation] = useLocation();
-  const { user, isLoading: authLoading, logout } = useAuth();
+  const { user: authUser, isLoading: authLoading, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -23,12 +29,12 @@ const GuideProfile = () => {
   useEffect(() => {
     if (!authLoading) {
       // First try to get user from context
-      let currentUser = user;
+      let currentUser = authUser as ExtendedUser | null;
       
       // If no user in context, check window.auth as fallback
       if (!currentUser && (window as any).auth?.user) {
         console.log("Using window.auth fallback:", (window as any).auth.user);
-        currentUser = (window as any).auth.user;
+        currentUser = (window as any).auth.user as ExtendedUser;
       }
       
       if (!currentUser) {
@@ -53,7 +59,7 @@ const GuideProfile = () => {
         return;
       }
     }
-  }, [user, authLoading, setLocation, toast]);
+  }, [authUser, authLoading, setLocation, toast]);
 
   const [formData, setFormData] = useState({
     location: "",
@@ -65,13 +71,13 @@ const GuideProfile = () => {
 
   // Fetch guide profile
   const { data: profile, isLoading } = useQuery<GuideProfileType>({
-    queryKey: ['/api/guide', user?.id, 'profile'],
+    queryKey: ['/api/guide', authUser?.id, 'profile'],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/guide/${user?.id}/profile`);
+      const response = await apiRequest("GET", `/api/guide/${authUser?.id}/profile`);
       if (!response.ok) throw new Error('Failed to fetch profile');
       return response.json();
     },
-    enabled: !!user?.id,
+    enabled: !!authUser?.id,
   });
 
   // Update form data when profile is loaded
@@ -90,7 +96,7 @@ const GuideProfile = () => {
   // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await apiRequest("PATCH", `/api/guide/${user?.id}/profile`, data);
+      const response = await apiRequest("PATCH", `/api/guide/${authUser?.id}/profile`, data);
       if (!response.ok) throw new Error('Failed to update profile');
       return response.json();
     },
@@ -99,7 +105,7 @@ const GuideProfile = () => {
         title: "Profile updated",
         description: "Your guide profile has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/guide', user?.id, 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/guide', authUser?.id, 'profile'] });
     },
     onError: (error) => {
       toast({
@@ -130,6 +136,8 @@ const GuideProfile = () => {
     );
   }
 
+  const user = authUser as ExtendedUser;
+
   return (
     <Layout>
       <div className="h-full flex flex-col pb-14">
@@ -146,19 +154,21 @@ const GuideProfile = () => {
               <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} />
-                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+                  <AvatarFallback>
+                    {user?.name ? user.name.charAt(0) : (user?.username ? user.username.charAt(0) : 'U')}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{user?.name}</h3>
-                  <p className="text-sm text-gray-500">@{user?.email}</p>
+                  <h3 className="text-lg font-semibold">{user?.name || 'User'}</h3>
+                  <p className="text-sm text-gray-500">@{user?.username || user?.email}</p>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <Mail className="w-4 h-4 mr-1" />
                     {user?.email}
                   </div>
                   {user?.phone && (
                     <div className="flex items-center mt-1 text-sm text-gray-600">
-                      <Phone className="w-4 h-4 mr-1" />
-                      {user.phone}
+                      <Phone className="w-4 h-4 mr-2" />
+                      <span>{String(user.phone)}</span>
                     </div>
                   )}
                 </div>

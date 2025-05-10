@@ -178,7 +178,7 @@ Please provide:
       model: "mistral-large-latest",
       messages: [
         {
-          role: "user" as const,
+          role: "user",
           content: prompt,
         },
       ],
@@ -190,6 +190,7 @@ Please provide:
 
     res.json({ plan: response.choices[0].message.content });
   } catch (error) {
+    console.error('Error generating trip plan:', error);
     res.status(500).json({ error: 'Failed to generate trip plan' });
   }
 });

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Base schemas for common fields
-const baseSchema = z.object({
+// Base schema for all models
+export const baseSchema = z.object({
   id: z.string(),
   createdAt: z.date(),
   updatedAt: z.date()
@@ -10,13 +10,15 @@ const baseSchema = z.object({
 // User schema
 export const userSchema = baseSchema.extend({
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   password: z.string(),
-  image: z.string().optional(),
   userType: z.enum(['user', 'guide']),
+  image: z.string().optional(),
   currentLatitude: z.string().optional(),
   currentLongitude: z.string().optional(),
-  lastLocationUpdate: z.date().optional()
+  lastLocationUpdate: z.date().optional(),
+  phone: z.string().optional(),
+  username: z.string().optional()
 });
 
 // Guide profile schema
@@ -46,7 +48,12 @@ export const placeSchema = baseSchema.extend({
   entryFee: z.string().optional(),
   bestTimeToVisit: z.string().optional(),
   wikimediaImageUrl: z.string().optional(),
-  wikimediaLicenseUrl: z.string().optional()
+  wikimediaLicenseUrl: z.string().optional(),
+  wikimediaThumbnailUrl: z.string().optional(),
+  wikimediaDescription: z.string().optional(),
+  wikimediaArtist: z.string().optional(),
+  wikimediaAttributionUrl: z.string().optional(),
+  wikimediaLicense: z.string().optional()
 });
 
 // Itinerary schema
@@ -78,9 +85,9 @@ export const bookingSchema = baseSchema.extend({
 
 // Connection schema
 export const connectionSchema = baseSchema.extend({
-  userId: z.string(),
-  followerId: z.string(),
-  status: z.enum(['pending', 'accepted', 'rejected']).optional()
+  fromUser: userSchema.omit({ password: true }).optional(),
+  toUser: userSchema.omit({ password: true }).optional(),
+  status: z.enum(['pending', 'accepted', 'rejected'])
 });
 
 // Saved place schema

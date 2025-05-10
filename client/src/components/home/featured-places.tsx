@@ -41,10 +41,10 @@ const FeaturedPlaces: React.FC<FeaturedPlacesProps> = ({ places, isLoading }) =>
                   ...place,
                   imageUrl: imageInfo.thumbnailUrl, // Use as fallback image too
                   wikimediaThumbnailUrl: imageInfo.thumbnailUrl,
-                  wikimediaDescription: imageInfo.description,
-                  wikimediaArtist: imageInfo.artist,
+                  wikimediaDescription: imageInfo.descriptionHtml,
+                  wikimediaArtist: imageInfo.artistName,
                   wikimediaAttributionUrl: imageInfo.attributionUrl,
-                  wikimediaLicense: imageInfo.license,
+                  wikimediaLicense: imageInfo.licenseName,
                   wikimediaLicenseUrl: imageInfo.licenseUrl
                 };
                 hasUpdates = true;

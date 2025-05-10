@@ -75,6 +75,41 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Environment Variables
+
+This project requires the following environment variables:
+
+```env
+NODE_ENV=development
+PORT=3000
+MONGODB_URI=your_mongodb_connection_string
+MISTRAL_API_KEY=your_mistral_api_key
+```
+
+1. Copy `.env.example` to `.env`
+2. Fill in your environment variables in `.env`
+3. Never commit `.env` file to version control
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+## Deployment
+
+This project is configured for deployment on Render. Required environment variables must be set in the Render dashboard.
 
 // Trigger build 

@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
@@ -7,16 +8,10 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
-    themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
+    ...(process.env.NODE_ENV !== "production" ? [
+      runtimeErrorOverlay(),
+      themePlugin()
+    ] : [])
   ],
   resolve: {
     alias: {
@@ -29,14 +24,21 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.NODE_ENV === 'production' 
+          ? process.env.API_URL || 'http://localhost:3000'
+          : 'http://localhost:3000',
         changeOrigin: true
       }
     }
   },
   build: {
-    outDir: "dist",
+    outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: process.env.NODE_ENV !== 'production',
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'client/index.html')
+      }
+    }
   },
 });

@@ -42,32 +42,28 @@ export default function LoginPage() {
     try {
       const loggedInUser = await login(loginUsername, loginPassword);
       
-      // The login function already sets window.auth in AuthContext, but let's double check
-      if (!(window as any).auth) {
-        console.log("Setting window.auth manually after login");
-        (window as any).auth = { user: loggedInUser };
-      }
-      
-      console.log("Login successful:", loggedInUser);
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${loggedInUser.fullName}!`,
-      });
-      
-      // Redirect based on user type
-      if (loggedInUser.userType === "guide") {
-        setLocation("/guide-dashboard");
-      } else {
-        setLocation("/dashboard");
+      if (loggedInUser) {
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${loggedInUser.name}!`,
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        if (loggedInUser.userType === "guide") {
+          setLocation("/guide-dashboard");
+        } else {
+          setLocation("/");
+        }
       }
       
     } catch (error) {
       console.error("Login error:", error);
       toast({
-        title: "Login failed",
-        description: "Invalid username or password.",
+        title: "Error",
+        description: "Invalid credentials",
         variant: "destructive",
+        duration: 3000
       });
     } finally {
       setLoggingIn(false);

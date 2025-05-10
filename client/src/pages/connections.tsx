@@ -23,21 +23,24 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import fixLeafletMapErrors from "@/lib/leaflet-fix";
 import { Loader2, RefreshCcw } from "lucide-react";
-import { User, GuideProfile } from "../shared/schema";
+import type { User as SchemaUser, GuideProfile as SchemaGuideProfile } from "../shared/schema";
 
-// Connection interface
+interface ExtendedUser extends SchemaUser {
+  phone?: string;
+  guideProfile?: SchemaGuideProfile;
+}
+
 interface Connection {
   id: string;
-  fromUserId: string;
-  toUserId: string;
   status: 'pending' | 'accepted' | 'rejected';
-  createdAt: string;
-  fromUser?: User;
-  toUser?: User;
-  guideProfile?: GuideProfile;
+  fromUser?: ExtendedUser;
+  toUser?: ExtendedUser;
+  guideProfile?: SchemaGuideProfile;
   message?: string;
   tripDetails?: string;
   budget?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const Connections: React.FC = () => {
@@ -182,12 +185,12 @@ const Connections: React.FC = () => {
     
     // For tourists: show outgoing pending requests they've sent to guides
     if (currentUser?.userType === 'tourist') {
-      const isSentByMe = connection.fromUserId?.toString() === currentUser.id?.toString();
+      const isSentByMe = connection.fromUser?.id?.toString() === currentUser.id?.toString();
       return isSentByMe;
     } 
     // For guides: show incoming pending requests from tourists
     else if (currentUser?.userType === 'guide') {
-      const isReceivedByMe = connection.toUserId?.toString() === currentUser.id?.toString();
+      const isReceivedByMe = connection.toUser?.id?.toString() === currentUser.id?.toString();
       return isReceivedByMe;
     }
     
@@ -197,16 +200,16 @@ const Connections: React.FC = () => {
   // Accepted connections for both roles - now memoized
   const acceptedConnections = useMemo(() => connections.filter(connection => 
     connection.status === 'accepted' && (
-      connection.fromUserId?.toString() === currentUser?.id?.toString() || 
-      connection.toUserId?.toString() === currentUser?.id?.toString()
+      connection.fromUser?.id?.toString() === currentUser?.id?.toString() || 
+      connection.toUser?.id?.toString() === currentUser?.id?.toString()
     )
   ), [connections, currentUser]);
   
   // Rejected connections for both roles - now memoized
   const rejectedConnections = useMemo(() => connections.filter(connection =>
     connection.status === 'rejected' && (
-      connection.fromUserId?.toString() === currentUser?.id?.toString() || 
-      connection.toUserId?.toString() === currentUser?.id?.toString()
+      connection.fromUser?.id?.toString() === currentUser?.id?.toString() || 
+      connection.toUser?.id?.toString() === currentUser?.id?.toString()
     )
   ), [connections, currentUser]);
 
@@ -302,7 +305,7 @@ const Connections: React.FC = () => {
     }
     
     // Fallback if user type is undefined
-    if (connection.fromUserId === currentUser.id) {
+    if (connection.fromUser?.id === currentUser.id) {
       return connection.toUser;
     } else {
       return connection.fromUser;
@@ -310,7 +313,7 @@ const Connections: React.FC = () => {
   };
   
   // Get appropriate role label based on user type
-  const getUserRoleLabel = (user?: User) => {
+  const getUserRoleLabel = (user?: ExtendedUser) => {
     if (!user) return "Unknown";
     return user.userType === 'guide' ? 'Guide' : 'Tourist';
   };
@@ -341,7 +344,7 @@ const Connections: React.FC = () => {
   }, []); // Empty dependency array to only run once on mount
 
   // Helper function to get guide profile from connection
-  const getGuideProfile = (connection: Connection, otherUser?: User): GuideProfile | undefined => {
+  const getGuideProfile = (connection: Connection, otherUser?: ExtendedUser): SchemaGuideProfile | undefined => {
     // If we have a guide profile directly on the connection, use that
     if (connection.guideProfile) {
       return connection.guideProfile;
@@ -899,7 +902,7 @@ const Connections: React.FC = () => {
                               </div>
                             )}
                             
-                            {otherParty?.userType === "tourist" && connection.tripDetails && (
+                            {otherParty?.userType === "user" && connection.tripDetails && (
                               <div className="mb-3 text-sm">
                                 <p className="text-gray-500">Trip Details</p>
                                 <p className="font-medium">{connection.tripDetails}</p>

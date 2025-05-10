@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
 import { nanoid } from "nanoid";
-import type { ViteDevServer } from 'vite/types';
+import type { ViteDevServer } from 'vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PORT = process.env.PORT || 3000;
 
 let vite: ViteDevServer | undefined;
 
@@ -20,14 +21,12 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function createViteServer(): Promise<ViteDevServer> {
-  const { createServer } = await import('vite');
-  const server = await createServer({
+export async function createViteServer() {
+  const vite = await import('vite');
+  return vite.createServer({
     server: { middlewareMode: true },
     appType: 'custom'
   });
-
-  return server;
 }
 
 export async function closeViteServer() {
@@ -38,7 +37,10 @@ export async function closeViteServer() {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(process.env.NODE_ENV === 'production' 
+    ? path.join(__dirname, '../dist')
+    : path.join(__dirname, 'public')
+  );
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

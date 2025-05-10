@@ -17,16 +17,17 @@ import GuideBottomNavigation from "@/components/guide/bottom-navigation";
 import type { User } from "../../../shared/schema";
 
 interface Connection {
-  id: number | string;
-  fromUserId: string | number;
-  toUserId: string | number;
+  id: string;
+  userId: string;
+  followerId: string;
   status: 'pending' | 'accepted' | 'rejected';
-  message: string;
+  message?: string;
   tripDetails?: string;
   budget?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   fromUser?: User;
+  toUser?: User;
 }
 
 interface Stats {
@@ -171,82 +172,99 @@ const GuideDashboard: React.FC = () => {
       const mockData: Connection[] = [
         {
           id: "1",
-          fromUserId: "tourist1",
-          toUserId: user?.id || "",
+          userId: "tourist1",
+          followerId: user?.id || "",
           status: "pending" as const,
           message: "I'm planning a trip to Mumbai next week. Would love your guidance!",
           tripDetails: "3-day trip to Mumbai, interested in historical sites",
           budget: "₹5000",
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
+          createdAt: new Date(Date.now() - 3600000),
+          updatedAt: new Date(Date.now() - 3600000),
           fromUser: {
             id: "tourist1",
             username: "traveler123",
-            fullName: "John Traveler",
+            name: "John Traveler",
             email: "john@example.com",
-            userType: "tourist",
+            userType: "user",
             password: "mockpass",
             phone: "0000000000",
             currentLatitude: "",
             currentLongitude: "",
-            lastLocationUpdate: undefined,
-            createdAt: undefined
+            lastLocationUpdate: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         },
         {
           id: "2",
-          fromUserId: "tourist2",
-          toUserId: user?.id || "",
+          userId: "tourist2",
+          followerId: user?.id || "",
           status: "accepted" as const,
           message: "We're a family of 4 visiting Pune. Can you help us explore the city?",
           tripDetails: "5-day trip to Pune, family with children",
           budget: "₹10000",
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 43200000).toISOString(),
+          createdAt: new Date(Date.now() - 86400000),
+          updatedAt: new Date(Date.now() - 43200000),
           fromUser: {
             id: "tourist2",
-            username: "explorer456",
-            fullName: "Mary Explorer",
+            name: "Mary Explorer",
             email: "mary@example.com",
-            userType: "tourist",
+            userType: "user",
             password: "mockpass",
             phone: "0000000000",
             currentLatitude: "",
             currentLongitude: "",
-            lastLocationUpdate: undefined,
-            createdAt: undefined
+            lastLocationUpdate: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         },
         {
           id: "3",
-          fromUserId: "tourist3",
-          toUserId: user?.id || "",
+          userId: "tourist3",
+          followerId: user?.id || "",
           status: "accepted" as const,
           message: "Looking for a guide in Aurangabad to visit Ajanta and Ellora caves.",
           tripDetails: "2-day trip to Aurangabad, focus on caves",
           budget: "₹7000",
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          updatedAt: new Date(Date.now() - 86400000).toISOString(),
+          createdAt: new Date(Date.now() - 172800000),
+          updatedAt: new Date(Date.now() - 86400000),
           fromUser: {
             id: "tourist3",
-            username: "hiker789",
-            fullName: "Bob Hiker",
+            name: "Bob Hiker",
             email: "bob@example.com",
-            userType: "tourist",
+            userType: "user",
             password: "mockpass",
-            phone: "0000000000",
             currentLatitude: "",
             currentLongitude: "",
-            lastLocationUpdate: undefined,
-            createdAt: undefined
+            lastLocationUpdate: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         },
         {
-          id: '102',
-          name: 'Tourist Demo',
-          email: 'tourist@example.com',
-          password: 'demo123',
-          userType: 'user',
+          id: 'demo-connection',
+          userId: 'tourist-demo',
+          followerId: user?.id || '',
+          status: 'pending',
+          fromUser: {
+            id: 'tourist-demo',
+            name: 'Tourist Demo',
+            email: 'tourist@example.com',
+            password: 'demo123',
+            userType: 'user',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          toUser: {
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email,
+            password: currentUser.password,
+            userType: currentUser.userType,
+            createdAt: currentUser.createdAt,
+            updatedAt: currentUser.updatedAt
+          },
           createdAt: new Date(),
           updatedAt: new Date()
         }

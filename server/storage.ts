@@ -2,6 +2,7 @@ import { MongoClient, ObjectId, Filter, UpdateFilter, FindOneAndUpdateOptions } 
 import type { Collection, Document, Db } from 'mongodb';
 import { userSchema, guideProfileSchema, placeSchema, itinerarySchema, itineraryPlaceSchema, bookingSchema, connectionSchema, savedPlaceSchema } from '../shared/schema.js';
 import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Booking, Connection, SavedPlace } from '../shared/schema.js';
+import { nanoid } from 'nanoid';
 
 export interface IStorage {
   users: Collection<User>;
@@ -61,15 +62,14 @@ export interface IStorage {
   createMessage(message: any): Promise<any>;
 }
 
-interface ExtendedConnection extends Omit<Connection, 'createdAt' | 'updatedAt'> {
-  fromUser?: Omit<User, 'password'>;
-  toUser?: Omit<User, 'password'>;
-  guideProfile?: GuideProfile;
-  fromUserId: string;
-  toUserId: string;
+interface ExtendedConnection {
+  id: string;
+  fromUser: string;
+  toUser: string;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
-  status?: 'pending' | 'accepted' | 'rejected';
+  guideProfile?: any;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -203,36 +203,45 @@ export class MongoStorage implements IStorage {
       const { _id, ...rest } = connection;
       
       const baseConnection: ExtendedConnection = {
-        ...rest, 
-        id: _id.toString(),
-        fromUserId: rest.userId,
-        toUserId: rest.followerId,
-        createdAt: new Date(rest.createdAt),
-        updatedAt: new Date(rest.updatedAt)
+        id: nanoid(),
+        status: rest.status || 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
-      try {
-        const fromUser = await this.getUser(baseConnection.fromUserId);
+      // Get the users
+      if (rest.fromUser?.id) {
+        const fromUser = await this.getUser(rest.fromUser.id);
         if (fromUser) {
-          const { password, ...fromUserSafe } = fromUser;
+          const { password: _, ...fromUserSafe } = fromUser;
           baseConnection.fromUser = fromUserSafe;
         }
-        
-        const toUser = await this.getUser(baseConnection.toUserId);
+      }
+
+      if (rest.toUser?.id) {
+        const toUser = await this.getUser(rest.toUser.id);
         if (toUser) {
-          const { password, ...toUserSafe } = toUser;
+          const { password: _, ...toUserSafe } = toUser;
           baseConnection.toUser = toUserSafe;
-        }
-        
-        if (toUser?.userType === 'guide') {
-          const guideProfile = await this.getGuideProfile(baseConnection.toUserId);
-          if (guideProfile) {
-            baseConnection.guideProfile = guideProfile;
+
+          if (toUser.userType === 'guide' && toUser.id) {
+            const guideProfile = await this.getGuideProfile(toUser.id);
+            if (guideProfile) {
+              baseConnection.guideProfile = guideProfile;
+            }
           }
         }
-      } catch (error) {
-        console.error("[storage] Error populating user data for connection:", error);
       }
+      
+      // Save to database
+      const savedConnection = await this.db.collection('connections').insertOne({
+        fromUser: baseConnection.fromUser,
+        toUser: baseConnection.toUser,
+        status: baseConnection.status,
+        createdAt: baseConnection.createdAt,
+        updatedAt: baseConnection.updatedAt,
+        guideProfile: baseConnection.guideProfile
+      });
       
       return baseConnection;
     }));
@@ -289,29 +298,28 @@ export class MongoStorage implements IStorage {
       if (!result) return undefined;
       
       const { _id, ...rest } = result;
-      const connectionData: ExtendedConnection = { 
-        ...rest,
-        id: _id.toString(),
-        fromUserId: rest.userId,
-        toUserId: rest.followerId,
-        createdAt: new Date(rest.createdAt),
-        updatedAt: new Date(rest.updatedAt)
+      const connectionData: ExtendedConnection = {
+        id: nanoid(),
+        status: rest.status || 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
-      try {
-        const fromUser = await this.getUser(connectionData.fromUserId);
+      // Get the users
+      if (rest.fromUser?.id) {
+        const fromUser = await this.getUser(rest.fromUser.id);
         if (fromUser) {
-          const { password, ...fromUserSafe } = fromUser;
+          const { password: _, ...fromUserSafe } = fromUser;
           connectionData.fromUser = fromUserSafe;
         }
-        
-        const toUser = await this.getUser(connectionData.toUserId);
+      }
+
+      if (rest.toUser?.id) {
+        const toUser = await this.getUser(rest.toUser.id);
         if (toUser) {
-          const { password, ...toUserSafe } = toUser;
+          const { password: _, ...toUserSafe } = toUser;
           connectionData.toUser = toUserSafe;
         }
-      } catch (error) {
-        console.error("[storage] Error getting user details for connection:", error);
       }
       
       return connectionData;
@@ -533,6 +541,20 @@ export class MongoStorage implements IStorage {
       console.error("[storage] Error creating message:", error);
       throw error;
     }
+  }
+
+  async saveConnection(connectionData: Omit<ExtendedConnection, "id">): Promise<ExtendedConnection> {
+    const baseConnection = {
+      fromUser: connectionData.fromUser,
+      toUser: connectionData.toUser,
+      status: connectionData.status,
+      createdAt: connectionData.createdAt,
+      updatedAt: connectionData.updatedAt,
+      guideProfile: connectionData.guideProfile
+    };
+
+    const savedConnection = await this.db.collection('connections').insertOne(baseConnection);
+    return { ...baseConnection, id: savedConnection.insertedId.toString() };
   }
 }
 
