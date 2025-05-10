@@ -24,11 +24,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './client/package-lock.json'
 
-      - name: Clean install in client
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install client dependencies
         working-directory: ./client
         run: |
-          rm -rf node_modules
           npm install
+          npm install zod mongodb @types/mongodb --save
+          npm install -D tailwindcss postcss autoprefixer
 
       - name: Build client
         working-directory: ./client
