@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import GuideBottomNavigation from "@/components/guide/bottom-navigation";
-import { User } from "@/shared/schema";
+import type { User } from "../../../shared/schema";
 
 interface Connection {
   id: number | string;
@@ -90,7 +90,8 @@ const MOCK_PLACES: Place[] = [
 
 const GuideDashboard: React.FC = () => {
   const [_, setLocation] = useLocation();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user: rawUser, isLoading: authLoading } = useAuth();
+  const user = rawUser as User | null;
   const [bottomSheetOpen, setBottomSheetOpen] = useState(true);
   const { toast } = useToast();
 
@@ -183,7 +184,13 @@ const GuideDashboard: React.FC = () => {
             username: "traveler123",
             fullName: "John Traveler",
             email: "john@example.com",
-            userType: "tourist"
+            userType: "tourist",
+            password: "mockpass",
+            phone: "0000000000",
+            currentLatitude: "",
+            currentLongitude: "",
+            lastLocationUpdate: undefined,
+            createdAt: undefined
           }
         },
         {
@@ -201,7 +208,13 @@ const GuideDashboard: React.FC = () => {
             username: "explorer456",
             fullName: "Mary Explorer",
             email: "mary@example.com",
-            userType: "tourist"
+            userType: "tourist",
+            password: "mockpass",
+            phone: "0000000000",
+            currentLatitude: "",
+            currentLongitude: "",
+            lastLocationUpdate: undefined,
+            createdAt: undefined
           }
         },
         {
@@ -219,7 +232,13 @@ const GuideDashboard: React.FC = () => {
             username: "hiker789",
             fullName: "Bob Hiker",
             email: "bob@example.com",
-            userType: "tourist"
+            userType: "tourist",
+            password: "mockpass",
+            phone: "0000000000",
+            currentLatitude: "",
+            currentLongitude: "",
+            lastLocationUpdate: undefined,
+            createdAt: undefined
           }
         }
       ];

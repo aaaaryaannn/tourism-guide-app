@@ -1,5 +1,6 @@
 import { Switch, Route, useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import React from "react";
 
 // Import components
 import WelcomeScreen from "@/components/welcome-screen";
@@ -24,20 +25,11 @@ import GuideItineraries from "@/pages/guide-itineraries";
 import GuideConnections from "@/pages/guide-connections";
 
 // Define user type
-export interface User {
-  id: number;
-  username: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  userType: string;
-  isGuide: boolean;
-  createdAt: string | Date;
-}
+import type { User } from "../shared/schema";
 
 // Authentication context directly in App
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<(User & { isGuide: boolean }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
   
@@ -83,7 +75,7 @@ function App() {
       const data = await response.json();
       
       // Create user object with isGuide property
-      const userData: User = {
+      const userData = {
         ...data,
         isGuide: data.userType === 'guide'
       };
@@ -164,10 +156,10 @@ function App() {
         
         {/* Protected routes - only accessible when logged in */}
         {user ? (
-          <>
+          <React.Fragment>
             {/* Tourist routes - only show if user is not a guide */}
             {!user.isGuide && (
-              <>
+              <React.Fragment>
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/search" component={SearchPage} />
                 <Route path="/transport-booking" component={TransportBooking} />
@@ -175,20 +167,20 @@ function App() {
                 <Route path="/trip-planner" component={TripPlanner} />
                 <Route path="/connections" component={Connections} />
                 <Route path="/profile" component={() => <Profile user={user} logout={logout} />} />
-              </>
+              </React.Fragment>
             )}
             
             {/* Guide routes - only show if user is a guide */}
             {user.isGuide && (
-              <>
+              <React.Fragment>
                 <Route path="/guide-dashboard" component={GuideDashboard} />
                 <Route path="/guide-requests" component={GuideRequests} />
                 <Route path="/guide-itineraries" component={GuideItineraries} />
                 <Route path="/guide-connections" component={GuideConnections} />
                 <Route path="/guide-profile" component={GuideProfile} />
-              </>
+              </React.Fragment>
             )}
-          </>
+          </React.Fragment>
         ) : (
           // Redirect to login if trying to access protected routes while not logged in
           <Route path="/:rest*">

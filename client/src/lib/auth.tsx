@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import type { User } from "../shared/schema";
 
 // Define a base user type if we can't import from schema
 type BaseUser = {
@@ -12,13 +13,13 @@ type BaseUser = {
 };
 
 // Extend the User type to include the isGuide property
-interface User extends BaseUser {
+interface AuthUser extends BaseUser {
   isGuide: boolean;
 }
 
 interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => Promise<User>;
+  user: AuthUser | null;
+  login: (username: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -32,7 +33,7 @@ interface AuthProviderProps {
 
 // Create the auth provider component
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is already logged in
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // Login function
-  async function login(username: string, password: string): Promise<User> {
+  async function login(username: string, password: string): Promise<AuthUser> {
     try {
       setIsLoading(true);
       
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       // Add the isGuide property based on userType
-      const userData: User = {
+      const userData: AuthUser = {
         ...data,
         isGuide: data.userType === 'guide',
         id: data.id // Ensure ID is explicitly set

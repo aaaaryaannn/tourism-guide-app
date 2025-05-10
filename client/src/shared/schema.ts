@@ -132,4 +132,4 @@ export const savedPlaceSchema = z.object({
   createdAt: z.date().optional()
 });
 
-export type SavedPlace = z.infer<typeof savedPlaceSchema>;
+export type SavedPlace = z.infer<typeof savedPlaceSchema>; 

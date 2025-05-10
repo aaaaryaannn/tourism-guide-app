@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, MessageSquare } from "lucide-react";
+import type { User } from "../../../shared/schema";
 
 // Guide profile interface
 interface GuideProfile {
@@ -35,16 +36,6 @@ interface GuideProfile {
   experience: number;
   rating: number;
   bio: string;
-}
-
-// User interface
-interface User {
-  id: number | string;
-  username: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  userType: string;
 }
 
 // Connection interface

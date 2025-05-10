@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { User } from "../../shared/schema";
+import type { User } from "../../../shared/schema";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),

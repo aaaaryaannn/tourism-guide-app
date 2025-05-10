@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { Home, Users, AlertCircle, MapPin, MessageSquare, Search } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import type { User } from "../shared/schema";
 
 interface NavItemProps {
   icon: React.ReactNode;

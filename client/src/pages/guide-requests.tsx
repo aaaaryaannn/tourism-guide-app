@@ -9,16 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import GuideBottomNavigation from "@/components/guide/bottom-navigation";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-
-// Define user interface
-interface User {
-  id: number | string;
-  username: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  userType: string;
-}
+import type { User } from "../../../shared/schema";
 
 // Define connection interface
 interface Connection {
