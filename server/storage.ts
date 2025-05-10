@@ -64,12 +64,15 @@ export interface IStorage {
 
 interface ExtendedConnection {
   id: string;
-  fromUser: string;
-  toUser: string;
-  status: string;
+  fromUser: User;
+  toUser: User;
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: Date;
   updatedAt: Date;
-  guideProfile?: any;
+  guideProfile?: GuideProfile;
+  message?: string;
+  tripDetails?: string;
+  budget?: string;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -252,11 +255,15 @@ export class MongoStorage implements IStorage {
   async createConnection(connectionData: Omit<ExtendedConnection, 'id'>): Promise<ExtendedConnection> {
     try {
       const connection = {
-        userId: connectionData.fromUserId,
-        followerId: connectionData.toUserId,
+        fromUser: connectionData.fromUser,
+        toUser: connectionData.toUser,
         status: connectionData.status || 'pending',
         createdAt: connectionData.createdAt || new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        message: connectionData.message,
+        tripDetails: connectionData.tripDetails,
+        budget: connectionData.budget,
+        guideProfile: connectionData.guideProfile
       };
       
       const result = await this.connections.insertOne(connection as any);
@@ -266,11 +273,9 @@ export class MongoStorage implements IStorage {
       }
       
       return {
-        ...connectionData,
-        id: result.insertedId.toString(),
-        createdAt: new Date(connection.createdAt),
-        updatedAt: new Date(connection.updatedAt)
-      };
+        ...connection,
+        id: result.insertedId.toString()
+      } as ExtendedConnection;
     } catch (error) {
       console.error("[storage] Error creating connection:", error);
       throw error;
@@ -298,31 +303,19 @@ export class MongoStorage implements IStorage {
       if (!result) return undefined;
       
       const { _id, ...rest } = result;
-      const connectionData: ExtendedConnection = {
-        id: nanoid(),
-        status: rest.status || 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      // Get the users
-      if (rest.fromUser?.id) {
-        const fromUser = await this.getUser(rest.fromUser.id);
-        if (fromUser) {
-          const { password: _, ...fromUserSafe } = fromUser;
-          connectionData.fromUser = fromUserSafe;
-        }
-      }
-
-      if (rest.toUser?.id) {
-        const toUser = await this.getUser(rest.toUser.id);
-        if (toUser) {
-          const { password: _, ...toUserSafe } = toUser;
-          connectionData.toUser = toUserSafe;
-        }
-      }
-      
-      return connectionData;
+      return {
+        ...rest,
+        id: _id.toString(),
+        fromUser: rest.fromUser,
+        toUser: rest.toUser,
+        status: rest.status,
+        createdAt: rest.createdAt,
+        updatedAt: rest.updatedAt,
+        guideProfile: rest.guideProfile,
+        message: rest.message,
+        tripDetails: rest.tripDetails,
+        budget: rest.budget
+      } as ExtendedConnection;
     } catch (error) {
       console.error("[storage] Error updating connection status:", error);
       return undefined;

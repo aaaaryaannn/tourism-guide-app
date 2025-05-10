@@ -412,22 +412,31 @@ export function setupRoutes(app: Express, storage: IStorage) {
   });
 
   // Create connection
-  router.post('/connections', async (req, res) => {
+  app.post('/api/connections', async (req, res) => {
     try {
-      const { userId, followerId, status } = req.body;
-      const connectionData = {
-        userId,
-        followerId,
-        status,
-        fromUserId: userId,
-        toUserId: followerId,
+      const { fromUser, toUser, message, tripDetails, budget } = req.body;
+
+      // Validate required fields
+      if (!fromUser || !toUser) {
+        return res.status(400).json({ error: 'fromUser and toUser are required' });
+      }
+
+      // Create connection with proper types
+      const connection = await storage.createConnection({
+        fromUser,
+        toUser,
+        status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      const connection = await storage.createConnection(connectionData);
+        updatedAt: new Date(),
+        message,
+        tripDetails,
+        budget
+      });
+
       res.status(201).json(connection);
     } catch (error) {
-      handleError(error, res);
+      console.error('Error creating connection:', error);
+      res.status(500).json({ error: 'Failed to create connection' });
     }
   });
 

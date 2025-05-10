@@ -23,10 +23,11 @@ export function log(message: string, source = "express") {
 
 export async function createViteServer() {
   const vite = await import('vite');
-  return vite.createServer({
+  const server = await vite.createServer({
     server: { middlewareMode: true },
     appType: 'custom'
   });
+  return server;
 }
 
 export async function closeViteServer() {
