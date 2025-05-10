@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import BottomNavigation from "@/components/bottom-navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Itinerary, User } from "../../shared/schema";
+import { Itinerary, User } from "@/shared/schema";
 // Global auth state is used instead of AuthContext
 
 const tripSchema = z.object({

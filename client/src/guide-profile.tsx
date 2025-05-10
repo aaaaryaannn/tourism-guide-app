@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
-import { User, GuideProfile as GuideProfileType } from "../shared/schema";
+import { User, GuideProfile as GuideProfileType } from "@/shared/schema";
 
 const GuideProfile: React.FC = () => {
   const [_, setLocation] = useLocation();
