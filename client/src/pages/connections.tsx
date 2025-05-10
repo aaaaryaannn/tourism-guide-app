@@ -342,46 +342,30 @@ const Connections: React.FC = () => {
 
   // Helper function to get guide profile from connection
   const getGuideProfile = (connection: Connection, otherUser?: User): GuideProfile | undefined => {
-    // First, check if the connection has a guide profile property
+    // If we have a guide profile directly on the connection, use that
     if (connection.guideProfile) {
-      console.log(`[Connection] Using guide profile from connection:`, connection.guideProfile);
       return connection.guideProfile;
     }
     
-    // Next, check if the other user has a guide profile
+    // If we have the other user and they have a guide profile, use that
     if (otherUser?.guideProfile) {
-      console.log(`[Connection] Using guide profile from otherUser:`, otherUser.guideProfile);
       return otherUser.guideProfile;
     }
     
-    // If the other user is a guide but doesn't have a profile attached, check both fromUser and toUser
-    if (otherUser?.userType === 'guide') {
-      // Check fromUser if it's a guide
-      if (connection.fromUser?.userType === 'guide' && connection.fromUser?.guideProfile) {
-        console.log(`[Connection] Using guide profile from fromUser:`, connection.fromUser.guideProfile);
-        return connection.fromUser.guideProfile;
-      }
-      
-      // Check toUser if it's a guide
-      if (connection.toUser?.userType === 'guide' && connection.toUser?.guideProfile) {
-        console.log(`[Connection] Using guide profile from toUser:`, connection.toUser.guideProfile);
+    // Otherwise, try to find the guide profile from the connection users
+    if (currentUser?.userType === 'tourist') {
+      // For tourists, the guide profile should be on the toUser
+      if (connection.toUser?.guideProfile) {
         return connection.toUser.guideProfile;
       }
+    } else {
+      // For guides, the guide profile should be on the fromUser
+      if (connection.fromUser?.guideProfile) {
+        return connection.fromUser.guideProfile;
+      }
     }
     
-    // Finally, look for any guide profiles in the connection
-    if (connection.fromUser?.userType === 'guide' && connection.fromUser?.guideProfile) {
-      console.log(`[Connection] Using guide profile from fromUser:`, connection.fromUser.guideProfile);
-      return connection.fromUser.guideProfile;
-    }
-    
-    if (connection.toUser?.userType === 'guide' && connection.toUser?.guideProfile) {
-      console.log(`[Connection] Using guide profile from toUser:`, connection.toUser.guideProfile);
-      return connection.toUser.guideProfile;
-    }
-    
-    // No guide profile found
-    console.log(`[Connection] No guide profile found for connection ${connection.id}`);
+    // If no guide profile found, return undefined
     return undefined;
   };
 
