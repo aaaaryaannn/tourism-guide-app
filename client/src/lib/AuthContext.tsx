@@ -1,21 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-// Define a base user type
-type BaseUser = {
-  id: number | string;
-  username?: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  profilePicture?: string;
-  createdAt?: string | Date;
-};
-
-// User type with isGuide property
-export interface User extends BaseUser {
-  isGuide: boolean;
-}
+import { User } from "../shared/schema";
 
 // Auth context type
 interface AuthContextType {
@@ -56,12 +40,13 @@ export const createMockUser = (role: 'tourist' | 'guide'): User => {
   return {
     id: role === 'guide' ? '101' : '102',
     username: role,
-    name: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
     email: `${role}@example.com`,
+    password: 'demo123',
+    fullName: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
     phone: '+91 9876543210',
-    role: role,
-    createdAt: new Date().toISOString(),
-    isGuide: role === 'guide'
+    userType: role,
+    isGuide: role === 'guide',
+    createdAt: new Date()
   };
 };
 
@@ -148,7 +133,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     console.log("User state changed:", user);
     if (user) {
-      console.log("User type:", user.role);
+      console.log("User type:", user.userType);
       console.log("Is guide:", user.isGuide);
       console.log("Window auth object:", (window as any).auth);
     }

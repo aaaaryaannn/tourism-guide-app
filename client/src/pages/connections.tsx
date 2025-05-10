@@ -23,20 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import fixLeafletMapErrors from "@/lib/leaflet-fix";
 import { Loader2, RefreshCcw } from "lucide-react";
-import type { User } from "../../../shared/schema";
-
-// Guide profile interface
-interface GuideProfile {
-  id: string;
-  userId: string;
-  location?: string;
-  bio?: string;
-  specialties?: string[];
-  experience?: number;
-  languages?: string[];
-  rating?: number;
-  ratingCount?: number;
-}
+import { User, GuideProfile } from "../shared/schema";
 
 // Connection interface
 interface Connection {
