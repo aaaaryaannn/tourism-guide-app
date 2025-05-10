@@ -164,7 +164,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
             id: "welcome",
             connectionId: connectionId,
             senderId: "system",
-            recipientId: currentUser.id,
+            recipientId: currentUser.id.toString(),
             content: "Start chatting with your connection! Messages are locally stored for now.",
             timestamp: new Date().toISOString(),
             read: true
@@ -183,7 +183,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ connectionId: propConnectionId }) =
             id: "welcome",
             connectionId: connectionId,
             senderId: "system",
-            recipientId: currentUser.id,
+            recipientId: currentUser.id.toString(),
             content: "Start chatting with your connection!",
             timestamp: new Date().toISOString(),
             read: true
