@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import GuideBottomNavigation from "@/components/guide/bottom-navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { apiRequest } from "@/lib/queryClient";
-import { User, GuideProfile as GuideProfileType, ExtendedUser } from "@/shared/schema";
+import { useAuth } from "./lib/AuthContext";
+import { useToast } from "./hooks/use-toast";
+import GuideBottomNavigation from "./components/guide/bottom-navigation";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Textarea } from "./components/ui/textarea";
+import { Card, CardContent } from "./components/ui/card";
+import { Badge } from "./components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
+import { apiRequest } from "./lib/queryClient";
+import { User, GuideProfile as GuideProfileType, ExtendedUser } from "./shared/schema";
 import { PhoneIcon } from "@heroicons/react/24/outline";
 
 const GuideProfile: React.FC = () => {
