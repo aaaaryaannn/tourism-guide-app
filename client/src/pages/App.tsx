@@ -1,6 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import React from "react";
+import { API_URL } from '../lib/constants';
 
 // Import components
 import WelcomeScreen from "../components/welcome-screen";
@@ -61,7 +62,7 @@ function App() {
       // Check if username is an email
       const email = username.includes('@') ? username : undefined;
       
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, email }),

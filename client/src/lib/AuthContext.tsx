@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "../shared/schema";
+import { API_URL } from './constants';
 
 interface ExtendedUser extends User {
   isGuide?: boolean;
@@ -24,7 +25,7 @@ interface AuthProviderProps {
 }
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://tourism-guide-backend.onrender.com/api';
+const API_BASE_URL = API_URL;
 
 // Set user in global window object for compatibility with existing components
 const setGlobalUser = (user: ExtendedUser | null) => {
