@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { storage } from './storage.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -8,27 +8,29 @@ import { RequestHandler } from 'express';
 const router = express.Router();
 
 // Define types
-interface AuthenticatedRequest extends express.Request {
-  user?: {
-    userId: string;
-    email: string;
-  };
+interface AuthUser {
+  userId: string;
+  email: string;
 }
 
-type AsyncHandler<T extends express.Request = express.Request> = (
-  req: T,
-  res: express.Response,
-  next: express.NextFunction
+interface AuthenticatedRequest extends Request {
+  user?: AuthUser;
+}
+
+type AsyncRequestHandler<T = {}> = (
+  req: Request & T,
+  res: Response,
+  next: NextFunction
 ) => Promise<any>;
 
 // Error handler middleware
-const asyncHandler = <T extends express.Request>(fn: AsyncHandler<T>): RequestHandler => 
+const asyncHandler = (fn: AsyncRequestHandler): RequestHandler => 
   (req, res, next) => {
-    Promise.resolve(fn(req as T, res, next)).catch(next);
+    Promise.resolve(fn(req, res, next)).catch(next);
   };
 
 // Auth middleware
-const authenticateToken = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+const authenticateToken: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -36,11 +38,14 @@ const authenticateToken = (req: AuthenticatedRequest, res: express.Response, nex
     return res.status(401).json({ message: 'No token provided' });
   }
 
-  jwt.verify(token, config.jwtSecret, (err: any, user: any) => {
+  jwt.verify(token, config.jwtSecret, (err: any, decoded: any) => {
     if (err) {
       return res.status(403).json({ message: 'Invalid token' });
     }
-    req.user = user;
+    (req as AuthenticatedRequest).user = {
+      userId: decoded.userId,
+      email: decoded.email
+    };
     next();
   });
 };
@@ -84,7 +89,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   res.json({ token });
 }));
 
-router.post('/guide-profile', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+router.post('/guide-profile', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { userId } = req.user!;
   const { name, description, languages, expertise, hourlyRate } = req.body;
 
@@ -113,7 +118,7 @@ router.get('/guide-profile/:id', asyncHandler(async (req, res) => {
   res.json(profile);
 }));
 
-router.post('/places', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+router.post('/places', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { name, description, location, images } = req.body;
   const place = await storage.createPlace({ name, description, location, images });
   res.status(201).json(place);
@@ -124,7 +129,7 @@ router.get('/places', asyncHandler(async (req, res) => {
   res.json(places);
 }));
 
-router.post('/itineraries', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+router.post('/itineraries', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { userId } = req.user!;
   const { places, startDate, endDate } = req.body;
   
@@ -138,7 +143,7 @@ router.post('/itineraries', authenticateToken, asyncHandler<AuthenticatedRequest
   res.status(201).json(itinerary);
 }));
 
-router.post('/bookings', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+router.post('/bookings', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { userId } = req.user!;
   const { guideId, date, duration } = req.body;
 
