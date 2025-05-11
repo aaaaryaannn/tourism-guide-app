@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc --project tsconfig.json",
+    "build": "rm -rf dist && tsc",
     "dev": "nodemon src/index.ts"
   },
   "dependencies": {
