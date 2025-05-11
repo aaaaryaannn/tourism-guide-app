@@ -45,8 +45,8 @@ const authenticateToken: RequestHandler = (req: Request, res: Response, next: Ne
 };
 
 // Routes
-router.post('/register', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+router.post('/auth/register', asyncHandler(async (req, res) => {
+  const { email, password, name, userType } = req.body;
   
   // Check if user exists
   const existingUser = await storage.getUserByEmail(email);
@@ -59,11 +59,17 @@ router.post('/register', asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   // Create user
-  const user = await storage.createUser({ email, password: hashedPassword });
+  const user = await storage.createUser({ 
+    email, 
+    password: hashedPassword,
+    name,
+    userType: userType || 'tourist'
+  });
+  
   res.status(201).json({ message: 'User created successfully', userId: user._id });
 }));
 
-router.post('/login', asyncHandler(async (req, res) => {
+router.post('/auth/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Find user
@@ -80,7 +86,42 @@ router.post('/login', asyncHandler(async (req, res) => {
 
   // Generate token
   const token = jwt.sign({ userId: user._id, email: user.email }, config.jwtSecret);
-  res.json({ token });
+  
+  // Get guide profile if exists
+  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
+  
+  // Return user data without password
+  const { password: _, ...userData } = user.toObject();
+  
+  res.json({ 
+    token,
+    user: {
+      ...userData,
+      isGuide: !!guideProfile
+    }
+  });
+}));
+
+// Get user profile
+router.get('/auth/profile', authenticateToken, handleAuthRoute(async (req, res) => {
+  const { userId } = req.user!;
+  
+  // Get user data
+  const user = await storage.getUserByEmail(userId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Get guide profile if exists
+  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
+
+  // Return user data without password
+  const { password: _, ...userData } = user.toObject();
+  
+  res.json({
+    ...userData,
+    isGuide: !!guideProfile
+  });
 }));
 
 // Helper function to handle authenticated routes
@@ -160,27 +201,6 @@ router.post('/bookings', authenticateToken, handleAuthRoute(async (req, res) => 
 router.get('/user-connections/:userId', asyncHandler(async (req, res) => {
   const connections = await storage.getConnections(req.params.userId);
   res.json(connections);
-}));
-
-// Get user profile
-router.get('/auth/profile', authenticateToken, handleAuthRoute(async (req, res) => {
-  const { userId } = req.user!;
-  
-  // Get user data
-  const user = await storage.getUserById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-  // Get guide profile if exists
-  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
-
-  // Return user data without password
-  const { password, ...userData } = user.toObject();
-  res.json({
-    ...userData,
-    isGuide: !!guideProfile
-  });
 }));
 
 export default router; 

@@ -24,7 +24,7 @@ interface AuthProviderProps {
 }
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://tourism-guide-backend.onrender.com/api';
 
 // Set user in global window object for compatibility with existing components
 const setGlobalUser = (user: ExtendedUser | null) => {
@@ -85,25 +85,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Save token
       localStorage.setItem("token", data.token);
       
-      // Get user profile
-      const userResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${data.token}`,
-        },
-      });
-
-      if (!userResponse.ok) {
-        throw new Error(`Failed to fetch user profile: ${userResponse.statusText}`);
-      }
-
-      const userData = await userResponse.json();
-      
       // Save user data
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
-      setGlobalUser(userData);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUser(data.user);
+      setGlobalUser(data.user);
       
-      return userData;
+      return data.user;
     } catch (error: any) {
       console.error("Login failed:", error.message || error);
       throw error;
