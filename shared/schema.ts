@@ -103,6 +103,9 @@ export const savedPlaceSchema = baseSchema.extend({
 
 // Export types
 export type User = z.infer<typeof userSchema>;
+export type ExtendedUser = User & {
+  guideProfile?: GuideProfile;
+};
 export type GuideProfile = z.infer<typeof guideProfileSchema>;
 export type Place = z.infer<typeof placeSchema>;
 export type Itinerary = z.infer<typeof itinerarySchema>;

@@ -46,8 +46,7 @@ export default function LoginPage() {
         toast({
           title: "Login successful",
           description: `Welcome back, ${loggedInUser.name}!`,
-          duration: 5000,
-          isClosable: true,
+          duration: 5000
         });
         
         if (loggedInUser.userType === "guide") {
@@ -78,7 +77,7 @@ export default function LoginPage() {
       
       toast({
         title: "Demo Login",
-        description: `Logged in as ${userType}`,
+        description: `Logged in as ${userType}`
       });
       
       // Redirect based on user type
@@ -93,7 +92,7 @@ export default function LoginPage() {
       toast({
         title: "Login failed",
         description: "Could not complete demo login.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoggingIn(false);
