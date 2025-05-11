@@ -1,7 +1,8 @@
 // API Configuration
-const getApiUrl = () => {
-  // Always use the production URL since we're deploying to GitHub Pages
-  return 'https://tourism-guide-backend.onrender.com';
+export const getApiUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  console.log('Using API URL:', apiUrl);
+  return apiUrl;
 };
 
 export const API_URL = getApiUrl();

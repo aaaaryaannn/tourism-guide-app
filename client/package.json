@@ -2,7 +2,6 @@
   "name": "tourism-guide-client",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://aaaaryaannn.github.io/tourism-guide-app",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -5,32 +5,32 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/tourism-guide-app/',
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared'),
     },
-  },
-  optimizeDeps: {
-    include: ['leaflet', 'leaflet.locatecontrol'],
   },
   build: {
     outDir: 'dist',
+    assetsDir: 'assets',
     sourcemap: true,
-    cssCodeSplit: false,
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'leaflet-vendor': ['leaflet', 'react-leaflet', 'leaflet.locatecontrol'],
+        },
       },
-      external: [
-        'leaflet.locatecontrol/dist/L.Control.Locate.min.css'
-      ]
     },
   },
-  css: {
-    modules: {
-      localsConvention: 'camelCase',
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 }) 
