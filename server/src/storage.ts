@@ -1,60 +1,60 @@
-import { db } from './db.js';
-import { ObjectId } from 'mongodb';
+import { User, GuideProfile, Place, Itinerary, Booking } from './models/index.js';
+import type { Document } from 'mongoose';
 
 export const storage = {
-  users: db.collection('users'),
-  guideProfiles: db.collection('guide_profiles'),
-  places: db.collection('places'),
-  itineraries: db.collection('itineraries'),
-  itineraryPlaces: db.collection('itinerary_places'),
-  savedPlaces: db.collection('saved_places'),
+  users: User,
+  guideProfiles: GuideProfile,
+  places: Place,
+  itineraries: Itinerary,
+  bookings: Booking,
   
   // Helper methods
   async getUserByEmail(email: string) {
-    return await this.users.findOne({ email });
+    return await User.findOne({ email });
   },
   
   async createUser(userData: any) {
-    const result = await this.users.insertOne(userData);
-    return { ...userData, id: result.insertedId.toString() };
+    const user = new User(userData);
+    await user.save();
+    const { password, ...userWithoutPassword } = user.toObject();
+    return userWithoutPassword;
   },
   
   async createGuideProfile(profileData: any) {
-    const result = await this.guideProfiles.insertOne(profileData);
-    return { ...profileData, id: result.insertedId.toString() };
+    const profile = new GuideProfile(profileData);
+    await profile.save();
+    return profile.toObject();
   },
   
   async createPlace(placeData: any) {
-    const result = await this.places.insertOne(placeData);
-    return { ...placeData, id: result.insertedId.toString() };
+    const place = new Place(placeData);
+    await place.save();
+    return place.toObject();
   },
   
   async getPlace(id: string) {
-    return await this.places.findOne({ _id: new ObjectId(id) });
+    return await Place.findById(id);
   },
   
   async getPlaces() {
-    return await this.places.find().toArray();
+    return await Place.find();
   },
   
   async createItinerary(itineraryData: any) {
-    const result = await this.itineraries.insertOne(itineraryData);
-    return { ...itineraryData, id: result.insertedId.toString() };
+    const itinerary = new Itinerary(itineraryData);
+    await itinerary.save();
+    return itinerary.toObject();
   },
   
   async createBooking(bookingData: any) {
-    const result = await this.itineraries.insertOne(bookingData);
-    return { ...bookingData, id: result.insertedId.toString() };
-  },
-  
-  async createConnection(connectionData: any) {
-    const result = await this.itineraries.insertOne(connectionData);
-    return { ...connectionData, id: result.insertedId.toString() };
+    const booking = new Booking(bookingData);
+    await booking.save();
+    return booking.toObject();
   },
   
   async getConnections(userId: string) {
-    return await this.itineraries.find({
-      $or: [{ fromUser: userId }, { toUser: userId }]
-    }).toArray();
+    return await Booking.find({
+      $or: [{ userId }, { guideId: userId }]
+    }).populate('userId guideId');
   }
 }; 
