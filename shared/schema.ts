@@ -87,7 +87,11 @@ export const bookingSchema = baseSchema.extend({
 export const connectionSchema = baseSchema.extend({
   fromUser: userSchema.omit({ password: true }).optional(),
   toUser: userSchema.omit({ password: true }).optional(),
-  status: z.enum(['pending', 'accepted', 'rejected'])
+  status: z.enum(['pending', 'accepted', 'rejected']),
+  message: z.string().optional(),
+  tripDetails: z.string().optional(),
+  budget: z.string().optional(),
+  guideProfile: guideProfileSchema.optional()
 });
 
 // Saved place schema

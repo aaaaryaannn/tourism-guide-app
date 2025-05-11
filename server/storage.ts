@@ -62,17 +62,9 @@ export interface IStorage {
   createMessage(message: any): Promise<any>;
 }
 
-interface ExtendedConnection {
-  id: string;
-  fromUser: User;
-  toUser: User;
-  status: 'pending' | 'accepted' | 'rejected';
-  createdAt: Date;
-  updatedAt: Date;
-  guideProfile?: GuideProfile;
-  message?: string;
-  tripDetails?: string;
-  budget?: string;
+interface ExtendedConnection extends Omit<Connection, 'fromUser' | 'toUser'> {
+  fromUser: Omit<User, 'password'>;
+  toUser: Omit<User, 'password'>;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -207,9 +199,29 @@ export class MongoStorage implements IStorage {
       
       const baseConnection: ExtendedConnection = {
         id: nanoid(),
+        fromUser: {
+          id: '',
+          name: '',
+          email: '',
+          userType: 'user',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        toUser: {
+          id: '',
+          name: '',
+          email: '',
+          userType: 'user',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
         status: rest.status || 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        message: rest.message,
+        tripDetails: rest.tripDetails,
+        budget: rest.budget,
+        guideProfile: undefined
       };
       
       // Get the users
