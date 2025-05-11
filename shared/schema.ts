@@ -1,115 +1,142 @@
-import { z } from 'zod';
+// Base interface for all models
+export interface BaseModel {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-// Base schema for all models
-export const baseSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date()
-});
+// User types and interfaces
+export type UserType = 'user' | 'guide';
 
-// User schema
-export const userSchema = baseSchema.extend({
-  name: z.string(),
-  email: z.string(),
-  password: z.string(),
-  userType: z.enum(['user', 'guide']),
-  image: z.string().optional(),
-  currentLatitude: z.string().optional(),
-  currentLongitude: z.string().optional(),
-  lastLocationUpdate: z.date().optional(),
-  phone: z.string().optional(),
-  username: z.string().optional()
-});
+export interface User extends BaseModel {
+  name: string;
+  email: string;
+  password: string;
+  userType: UserType;
+  image?: string;
+  currentLatitude?: string;
+  currentLongitude?: string;
+  lastLocationUpdate?: Date;
+  phone?: string;
+  username?: string;
+}
 
-// Guide profile schema
-export const guideProfileSchema = baseSchema.extend({
-  userId: z.string(),
-  bio: z.string(),
-  languages: z.array(z.string()),
-  specialties: z.array(z.string()),
-  location: z.string(),
-  experience: z.number(),
-  rating: z.number().optional(),
-  reviews: z.array(z.string()).optional()
-});
+// Guide profile interface
+export interface GuideProfile extends BaseModel {
+  userId: string;
+  bio: string;
+  languages: string[];
+  specialties: string[];
+  location: string;
+  experience: number;
+  rating?: number;
+  reviews?: string[];
+}
 
-// Place schema
-export const placeSchema = baseSchema.extend({
-  name: z.string(),
-  description: z.string(),
-  location: z.string(),
-  category: z.enum(['monument', 'temple', 'heritage', 'nature', 'winery', 'beach', 'landmark', 'spiritual']),
-  latitude: z.string(),
-  longitude: z.string(),
-  imageUrl: z.string(),
-  rating: z.number().optional(),
-  reviews: z.array(z.string()).optional(),
-  openingHours: z.string().optional(),
-  entryFee: z.string().optional(),
-  bestTimeToVisit: z.string().optional(),
-  wikimediaImageUrl: z.string().optional(),
-  wikimediaLicenseUrl: z.string().optional(),
-  wikimediaThumbnailUrl: z.string().optional(),
-  wikimediaDescription: z.string().optional(),
-  wikimediaArtist: z.string().optional(),
-  wikimediaAttributionUrl: z.string().optional(),
-  wikimediaLicense: z.string().optional()
-});
+// Place types and interfaces
+export type PlaceCategory = 'monument' | 'temple' | 'heritage' | 'nature' | 'winery' | 'beach' | 'landmark' | 'spiritual';
 
-// Itinerary schema
-export const itinerarySchema = baseSchema.extend({
-  userId: z.string(),
-  title: z.string(),
-  description: z.string(),
-  startDate: z.date(),
-  endDate: z.date()
-});
+export interface Place extends BaseModel {
+  name: string;
+  description: string;
+  location: string;
+  category: PlaceCategory;
+  latitude: string;
+  longitude: string;
+  imageUrl: string;
+  rating?: number;
+  reviews?: string[];
+  openingHours?: string;
+  entryFee?: string;
+  bestTimeToVisit?: string;
+  wikimediaImageUrl?: string;
+  wikimediaLicenseUrl?: string;
+  wikimediaThumbnailUrl?: string;
+  wikimediaDescription?: string;
+  wikimediaArtist?: string;
+  wikimediaAttributionUrl?: string;
+  wikimediaLicense?: string;
+}
 
-// Itinerary place schema
-export const itineraryPlaceSchema = baseSchema.extend({
-  itineraryId: z.string(),
-  placeId: z.string(),
-  order: z.number(),
-  notes: z.string().optional()
-});
+// Itinerary interface
+export interface Itinerary extends BaseModel {
+  userId: string;
+  title: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+}
 
-// Booking schema
-export const bookingSchema = baseSchema.extend({
-  userId: z.string(),
-  guideId: z.string(),
-  placeId: z.string(),
-  date: z.date(),
-  status: z.enum(['pending', 'confirmed', 'cancelled']),
-  notes: z.string().optional()
-});
+// Itinerary place interface
+export interface ItineraryPlace extends BaseModel {
+  itineraryId: string;
+  placeId: string;
+  order: number;
+  notes?: string;
+}
 
-// Connection schema
-export const connectionSchema = baseSchema.extend({
-  fromUser: userSchema.omit({ password: true }).optional(),
-  toUser: userSchema.omit({ password: true }).optional(),
-  status: z.enum(['pending', 'accepted', 'rejected']),
-  message: z.string().optional(),
-  tripDetails: z.string().optional(),
-  budget: z.string().optional(),
-  guideProfile: guideProfileSchema.optional()
-});
+// Booking types and interfaces
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
 
-// Saved place schema
-export const savedPlaceSchema = baseSchema.extend({
-  userId: z.string(),
-  placeId: z.string(),
-  notes: z.string().optional()
-});
+export interface Booking extends BaseModel {
+  userId: string;
+  guideId: string;
+  placeId: string;
+  date: Date;
+  status: BookingStatus;
+  notes?: string;
+}
 
-// Export types
-export type User = z.infer<typeof userSchema>;
-export type ExtendedUser = User & {
+// Connection types and interfaces
+export type ConnectionStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface Connection extends BaseModel {
+  fromUser?: Omit<User, 'password'>;
+  toUser?: Omit<User, 'password'>;
+  status: ConnectionStatus;
+  message?: string;
+  tripDetails?: string;
+  budget?: string;
   guideProfile?: GuideProfile;
+}
+
+// Saved place interface
+export interface SavedPlace extends BaseModel {
+  userId: string;
+  placeId: string;
+  notes?: string;
+}
+
+// Validation functions
+export const validateUser = (user: any): user is User => {
+  return (
+    typeof user === 'object' &&
+    typeof user.name === 'string' &&
+    typeof user.email === 'string' &&
+    typeof user.password === 'string' &&
+    (user.userType === 'user' || user.userType === 'guide')
+  );
 };
-export type GuideProfile = z.infer<typeof guideProfileSchema>;
-export type Place = z.infer<typeof placeSchema>;
-export type Itinerary = z.infer<typeof itinerarySchema>;
-export type ItineraryPlace = z.infer<typeof itineraryPlaceSchema>;
-export type Booking = z.infer<typeof bookingSchema>;
-export type Connection = z.infer<typeof connectionSchema>;
-export type SavedPlace = z.infer<typeof savedPlaceSchema>;
+
+export const validatePlace = (place: any): place is Place => {
+  return (
+    typeof place === 'object' &&
+    typeof place.name === 'string' &&
+    typeof place.description === 'string' &&
+    typeof place.location === 'string' &&
+    typeof place.latitude === 'string' &&
+    typeof place.longitude === 'string' &&
+    typeof place.imageUrl === 'string'
+  );
+};
+
+export const validateBooking = (booking: any): booking is Booking => {
+  return (
+    typeof booking === 'object' &&
+    typeof booking.userId === 'string' &&
+    typeof booking.guideId === 'string' &&
+    typeof booking.placeId === 'string' &&
+    booking.date instanceof Date &&
+    ['pending', 'confirmed', 'cancelled'].includes(booking.status)
+  );
+};
