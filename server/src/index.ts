@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import { db } from './db.js';
 import { setupRoutes } from './routes.js';
 import { storage } from './storage.js';
-import { config } from './config';
+import { config } from './config/index.js';
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use(express.json());
 // Connect to MongoDB
 mongoose.connect(config.mongodbUri)
   .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
+  .catch((error: Error) => console.error('MongoDB connection error:', error));
 
 // Health check route
 app.get('/api/health', (_req, res) => {
