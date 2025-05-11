@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import BottomNavigation from "@/components/bottom-navigation";
-import MapView from "@/components/map-view";
-import Categories from "@/components/home/categories";
-import FeaturedPlaces from "@/components/home/featured-places";
-import AvailableGuides from "@/components/home/available-guides";
-import { ChatAssistant } from "@/components/chat-assistant";
-import { useWikimedia } from "@/hooks/use-wikimedia";
-import { Place } from "@shared/schema";
+import { Input } from "../components/ui/input";
+import BottomNavigation from "../components/bottom-navigation";
+import MapView from "../components/map-view";
+import Categories from "../components/home/categories";
+import FeaturedPlaces from "../components/home/featured-places";
+import AvailableGuides from "../components/home/available-guides";
+import { ChatAssistant } from "../components/chat-assistant";
+import { useWikimedia } from "../hooks/use-wikimedia";
+import { Place } from "../shared/schema";
 
 const Dashboard: React.FC = () => {
   const [_, setLocation] = useLocation();
