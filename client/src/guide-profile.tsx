@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./lib/AuthContext";
@@ -84,42 +84,81 @@ const GuideProfile: React.FC = () => {
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
       </div>
     );
   }
 
   const userDisplayName: string = user?.name || 'Anonymous';
-  const userInitial: string = typeof userDisplayName === 'string' ? userDisplayName.charAt(0) : 'A';
+  const userInitial: string = userDisplayName.charAt(0);
   const userHandle: string = user?.username || user?.email || 'anonymous';
+
+  const handleSpecialtiesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({
+      ...formData,
+      specialties: value.split(",").map(s => s.trim()).filter(Boolean)
+    });
+  };
+
+  const handleLanguagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({
+      ...formData,
+      languages: value.split(",").map(s => s.trim()).filter(Boolean)
+    });
+  };
+
+  const handleExperienceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    setFormData({
+      ...formData,
+      experience: isNaN(value) ? 0 : value
+    });
+  };
+
+  const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      bio: e.target.value
+    });
+  };
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      location: e.target.value
+    });
+  };
+
+  const renderProfileInfo = (): ReactNode => (
+    <div className="flex items-center space-x-4">
+      <Avatar>
+        <AvatarImage src={user?.image || ''} alt={userDisplayName} />
+        <AvatarFallback>{userInitial}</AvatarFallback>
+      </Avatar>
+      <div>
+        <h3 className="text-lg font-semibold">{userDisplayName}</h3>
+        <p className="text-sm text-gray-500">@{userHandle}</p>
+        {user?.phone && (
+          <div className="flex items-center mt-1 text-sm text-gray-600">
+            <PhoneIcon className="w-4 h-4 mr-1" />
+            <span>{user.phone}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col pb-14">
-      {/* Header */}
       <div className="p-4 border-b">
         <h2 className="text-2xl font-bold">Guide Profile</h2>
       </div>
 
-      {/* Profile Content */}
       <div className="flex-1 overflow-y-auto p-4">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Picture */}
-          <div className="flex items-center space-x-4">
-            <Avatar>
-              <AvatarImage src={user?.image || ''} alt={userDisplayName} />
-              <AvatarFallback>{userInitial}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="text-lg font-semibold">{userDisplayName}</h3>
-              <p className="text-sm text-gray-500">@{userHandle}</p>
-              {user?.phone && (
-                <div className="flex items-center mt-1 text-sm text-gray-600">
-                  <PhoneIcon className="w-4 h-4 mr-1" />
-                  <span>{user.phone}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          {renderProfileInfo()}
 
           {/* Location */}
           <div>
@@ -128,7 +167,7 @@ const GuideProfile: React.FC = () => {
             </label>
             <Input
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onChange={handleLocationChange}
               placeholder="Enter your location"
             />
           </div>
@@ -141,7 +180,7 @@ const GuideProfile: React.FC = () => {
             <Input
               type="number"
               value={formData.experience}
-              onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) })}
+              onChange={handleExperienceChange}
               placeholder="Enter years of experience"
             />
           </div>
@@ -153,10 +192,7 @@ const GuideProfile: React.FC = () => {
             </label>
             <Input
               value={formData.specialties.join(", ")}
-              onChange={(e) => setFormData({
-                ...formData,
-                specialties: e.target.value.split(",").map(s => s.trim()).filter(Boolean)
-              })}
+              onChange={handleSpecialtiesChange}
               placeholder="e.g., Historical Tours, Adventure Tours, Cultural Tours"
             />
           </div>
@@ -168,10 +204,7 @@ const GuideProfile: React.FC = () => {
             </label>
             <Input
               value={formData.languages.join(", ")}
-              onChange={(e) => setFormData({
-                ...formData,
-                languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean)
-              })}
+              onChange={handleLanguagesChange}
               placeholder="e.g., English, Hindi, Marathi"
             />
           </div>
@@ -183,7 +216,7 @@ const GuideProfile: React.FC = () => {
             </label>
             <Textarea
               value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              onChange={handleBioChange}
               placeholder="Tell us about yourself and your guiding experience"
               rows={4}
             />
@@ -200,7 +233,6 @@ const GuideProfile: React.FC = () => {
         </form>
       </div>
 
-      {/* Bottom Navigation */}
       <GuideBottomNavigation />
     </div>
   );
