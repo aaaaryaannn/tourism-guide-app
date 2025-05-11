@@ -35,8 +35,8 @@ jobs:
       - name: Install client dependencies
         working-directory: ./client
         run: |
-          npm ci
-          npm install zod mongodb @types/mongodb --save
+          npm install
+          npm install zod mongodb @types/mongodb @types/node --save
           npm install -D tailwindcss postcss autoprefixer
 
       - name: Build
