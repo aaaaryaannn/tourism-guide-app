@@ -2,13 +2,13 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
+import { useToast } from "../hooks/use-toast";
 import { useState } from "react";
-import type { User } from "../../../shared/schema";
+import type { User } from "../shared/schema";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
