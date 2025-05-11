@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Place } from '@shared/schema';
-import { fetchWikimediaImage } from '@/lib/wikimedia-api';
+import { fetchWikimediaImage } from '../lib/wikimedia-api';
 
 interface UseWikimediaOptions {
   updateDatabase?: boolean;

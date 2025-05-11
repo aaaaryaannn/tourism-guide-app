@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BusRoute } from '@/lib/mock-data';
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { BusRoute } from '../../lib/mock-data';
 
 interface BusResultsProps {
   results: BusRoute[];

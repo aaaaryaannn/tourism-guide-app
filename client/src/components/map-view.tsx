@@ -3,9 +3,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.locatecontrol/dist/L.Control.Locate.min.css";
 import "leaflet.locatecontrol";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import fixLeafletMapErrors from "@/lib/leaflet-fix";
+import { Button } from "./ui/button";
+import { Sheet, SheetContent } from "./ui/sheet";
+import fixLeafletMapErrors from "../lib/leaflet-fix";
 
 // Define the types for the marker position
 export interface LatLng {

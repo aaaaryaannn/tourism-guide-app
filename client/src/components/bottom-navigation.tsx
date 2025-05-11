@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 interface BottomNavigationProps {
   className?: string;

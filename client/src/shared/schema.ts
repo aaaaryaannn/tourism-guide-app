@@ -43,7 +43,9 @@ export const placeSchema = z.object({
   description: z.string(),
   location: z.string(),
   category: z.enum(['monument', 'temple', 'heritage', 'nature', 'winery', 'beach', 'landmark', 'spiritual']),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string(),
+  latitude: z.string(),
+  longitude: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
   // Wikimedia image information

@@ -14,10 +14,14 @@ import { apiRequest } from "./lib/queryClient";
 import { User, GuideProfile as GuideProfileType, ExtendedUser } from "./shared/schema";
 import { PhoneIcon } from "@heroicons/react/24/outline";
 
+interface UserWithPhone extends ExtendedUser {
+  phone?: string;
+}
+
 const GuideProfile: React.FC = () => {
   const [_, setLocation] = useLocation();
   const { user: currentUser, isLoading: authLoading, logout } = useAuth();
-  const user = currentUser as ExtendedUser | undefined;
+  const user = currentUser as UserWithPhone | undefined;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -89,9 +93,9 @@ const GuideProfile: React.FC = () => {
     );
   }
 
-  const userDisplayName: string = user?.name || 'Anonymous';
-  const userInitial: string = userDisplayName.charAt(0);
-  const userHandle: string = user?.username || user?.email || 'anonymous';
+  const userDisplayName = user?.name || 'Anonymous';
+  const userInitial = userDisplayName.charAt(0);
+  const userHandle = user?.username || user?.email || 'anonymous';
 
   const handleSpecialtiesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -131,7 +135,7 @@ const GuideProfile: React.FC = () => {
     });
   };
 
-  const renderProfileInfo = (): ReactNode => (
+  const renderProfileInfo = () => (
     <div className="flex items-center space-x-4">
       <Avatar>
         <AvatarImage src={user?.image || ''} alt={userDisplayName} />
@@ -139,7 +143,7 @@ const GuideProfile: React.FC = () => {
       </Avatar>
       <div>
         <h3 className="text-lg font-semibold">{userDisplayName}</h3>
-        <p className="text-sm text-gray-500">@{userHandle}</p>
+        <p className="text-sm text-gray-500">@{userHandle.toString()}</p>
         {user?.phone && (
           <div className="flex items-center mt-1 text-sm text-gray-600">
             <PhoneIcon className="w-4 h-4 mr-1" />

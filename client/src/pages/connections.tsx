@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
-import BottomNavigation from "@/components/bottom-navigation";
-import GuideBottomNavigation from "@/components/guide/bottom-navigation";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import BottomNavigation from "../components/bottom-navigation";
+import GuideBottomNavigation from "../components/guide/bottom-navigation";
+import { Button } from "../components/ui/button";
+import { Skeleton } from "../components/ui/skeleton";
+import { useToast } from "../hooks/use-toast";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
-} from "@/components/ui/tabs";
+} from "../components/ui/tabs";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,10 +18,10 @@ import {
   DialogTitle, 
   DialogDescription,
   DialogFooter
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import fixLeafletMapErrors from "@/lib/leaflet-fix";
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import fixLeafletMapErrors from "../lib/leaflet-fix";
 import { Loader2, RefreshCcw } from "lucide-react";
 import type { User as SchemaUser, GuideProfile as SchemaGuideProfile } from "../shared/schema";
 

@@ -1,9 +1,9 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/lib/AuthContext";
+import { Card, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { useAuth } from "../../lib/AuthContext";
 
 const UpcomingTours: React.FC = () => {
   const [_, setLocation] = useLocation();

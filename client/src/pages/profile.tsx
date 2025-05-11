@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import BottomNavigation from "@/components/bottom-navigation";
-import { useToast } from "@/hooks/use-toast";
+import { Switch } from "../components/ui/switch";
+import { Button } from "../components/ui/button";
+import { Label } from "../components/ui/label";
+import BottomNavigation from "../components/bottom-navigation";
+import { useToast } from "../hooks/use-toast";
 import type { User } from "../../../shared/schema";
 
 interface ProfileProps {

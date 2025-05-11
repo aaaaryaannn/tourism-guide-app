@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import MapView from "@/components/map-view";
-import GuideStats from "@/components/guide/guide-stats";
-import RequestsPreview from "@/components/guide/requests-preview";
-import UpcomingTours from "@/components/guide/upcoming-tours";
-import { useAuth } from "@/lib/AuthContext";
-import { ChatAssistant } from "@/components/chat-assistant";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import GuideBottomNavigation from "@/components/guide/bottom-navigation";
+import { Input } from "../components/ui/input";
+import MapView from "../components/map-view";
+import GuideStats from "../components/guide/guide-stats";
+import RequestsPreview from "../components/guide/requests-preview";
+import UpcomingTours from "../components/guide/upcoming-tours";
+import { useAuth } from "../lib/AuthContext";
+import { ChatAssistant } from "../components/chat-assistant";
+import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Button } from "../components/ui/button";
+import { useToast } from "../hooks/use-toast";
+import GuideBottomNavigation from "../components/guide/bottom-navigation";
 import type { User } from "../../../shared/schema";
 
 interface Connection {

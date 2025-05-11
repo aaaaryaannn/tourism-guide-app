@@ -1,8 +1,8 @@
 import { useLocation } from "wouter";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "../ui/skeleton";
 import { Place } from "@shared/schema";
 import { useState, useEffect } from 'react';
-import { fetchWikimediaImage } from "@/lib/wikimedia-api";
+import { fetchWikimediaImage } from "../../lib/wikimedia-api";
 import { AttractionInfoDialog } from "../attraction-info-dialog";
 
 interface FeaturedPlacesProps {

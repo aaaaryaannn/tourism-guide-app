@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import BottomNavigation from "@/components/bottom-navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import BusForm from "@/components/transport/bus-form";
-import TrainForm from "@/components/transport/train-form";
-import BusResults from "@/components/transport/bus-results";
-import TrainResults from "@/components/transport/train-results";
-import { generateMockBusRoutes, generateMockTrainRoutes, BusRoute, TrainRoute } from "@/lib/mock-data";
-import { useToast } from "@/hooks/use-toast";
+import BottomNavigation from "../components/bottom-navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Button } from "../components/ui/button";
+import BusForm from "../components/transport/bus-form";
+import TrainForm from "../components/transport/train-form";
+import BusResults from "../components/transport/bus-results";
+import TrainResults from "../components/transport/train-results";
+import { generateMockBusRoutes, generateMockTrainRoutes, BusRoute, TrainRoute } from "../lib/mock-data";
+import { useToast } from "../hooks/use-toast";
 
 interface SearchParams {
   from: string;

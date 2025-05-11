@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { fetchWikimediaImage, type WikimediaImageInfo } from "@/lib/wikimedia-api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Skeleton } from "./ui/skeleton";
+import { fetchWikimediaImage, type WikimediaImageInfo } from "../lib/wikimedia-api";
 
 interface AttractionInfoDialogProps {
   isOpen: boolean;
