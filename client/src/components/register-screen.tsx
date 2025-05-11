@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
+import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "../lib/queryClient";
 
 const registerSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
