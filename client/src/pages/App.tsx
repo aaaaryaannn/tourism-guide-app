@@ -3,26 +3,26 @@ import { useEffect, useState } from "react";
 import React from "react";
 
 // Import components
-import WelcomeScreen from "@/components/welcome-screen";
-import LoginScreen from "@/components/login-screen";
-import RegisterScreen from "@/components/register-screen";
+import WelcomeScreen from "../components/welcome-screen";
+import LoginScreen from "../components/login-screen";
+import RegisterScreen from "../components/register-screen";
 
 // Import tourist pages
-import Dashboard from "@/pages/dashboard";
-import SearchPage from "@/pages/search";
-import TransportBooking from "@/pages/transport-booking";
-import HotelBooking from "@/pages/hotel-booking";
-import TripPlanner from "@/pages/trip-planner";
-import Connections from "@/pages/connections";
-import Profile from "@/pages/profile";
-import GuideProfile from "@/pages/guide-profile";
-import NotFound from "@/pages/not-found";
+import Dashboard from "./dashboard";
+import SearchPage from "./search";
+import TransportBooking from "./transport-booking";
+import HotelBooking from "./hotel-booking";
+import TripPlanner from "./trip-planner";
+import Connections from "./connections";
+import Profile from "./profile";
+import GuideProfile from "./guide-profile";
+import NotFound from "./not-found";
 
 // Import guide pages
-import GuideDashboard from "@/pages/guide-dashboard";
-import GuideRequests from "@/pages/guide-requests";
-import GuideItineraries from "@/pages/guide-itineraries";
-import GuideConnections from "@/pages/guide-connections";
+import GuideDashboard from "./guide-dashboard";
+import GuideRequests from "./guide-requests";
+import GuideItineraries from "./guide-itineraries";
+import GuideConnections from "./guide-connections";
 
 // Define user type
 import type { User } from "../shared/schema";
