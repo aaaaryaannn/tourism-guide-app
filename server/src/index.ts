@@ -2,8 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { config } from './config';
-import { setupRoutes } from './routes';
-import { storage } from './storage';
 
 const app = express();
 
@@ -21,11 +19,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Setup routes
-setupRoutes(app, storage);
-
 // Start server
-const port = process.env.PORT || config.port;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(config.port, () => {
+  console.log(`Server running on port ${config.port}`);
 }); 
