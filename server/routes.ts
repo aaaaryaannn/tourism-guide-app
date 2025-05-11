@@ -3,24 +3,26 @@ import type { Request, Response } from 'express';
 import { createServer, type Server } from "http";
 import { storage } from "./storage.ts";
 import { db } from './db.js';
-import { 
-  userSchema,
-  guideProfileSchema,
-  placeSchema,
-  itinerarySchema,
-  itineraryPlaceSchema,
-  bookingSchema,
-  connectionSchema,
-  savedPlaceSchema
+import type {
+  User,
+  GuideProfile,
+  Place,
+  Itinerary,
+  ItineraryPlace,
+  Booking,
+  Connection,
+  SavedPlace
 } from "../shared/schema.ts";
-import { z } from 'zod';
-import { fromZodError } from "zod-validation-error";
+import {
+  validateUser,
+  validatePlace,
+  validateBooking
+} from "../shared/schema.ts";
 import { Mistral } from '@mistralai/mistralai';
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { Express } from 'express';
 import { IStorage } from './storage';
-import type { User, GuideProfile, Place, Itinerary, ItineraryPlace, Booking, Connection } from '../shared/schema';
 
 const router = express.Router();
 
@@ -55,10 +57,8 @@ function generateRandomLocationNearby(baseLat: number, baseLng: number, maxDista
 
 // Error handling middleware
 const handleError = (error: unknown, res: express.Response) => {
-  if (error instanceof z.ZodError) {
-    res.status(400).json({ error: fromZodError(error).message });
-  } else if (error instanceof Error) {
-    res.status(500).json({ error: error.message });
+  if (error instanceof Error) {
+    res.status(400).json({ error: error.message });
   } else {
     res.status(500).json({ error: 'An unknown error occurred' });
   }
@@ -81,23 +81,21 @@ router.post('/users', async (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    const validatedData = userSchema.parse(userData);
-    const existingUser = await storage.users.findOne({ email: validatedData.email });
+    if (!validateUser(userData)) {
+      return res.status(400).json({ error: 'Invalid user data' });
+    }
+    const existingUser = await storage.users.findOne({ email: userData.email });
     
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' });
     }
     
-    const result = await storage.users.insertOne(validatedData);
-    const user = { ...validatedData, id: result.insertedId.toString() };
+    const result = await storage.users.insertOne(userData);
+    const user = { ...userData, id: result.insertedId.toString() };
     res.status(201).json(user);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ error: fromZodError(error).message });
-    } else {
-      console.error('Error creating user:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -113,11 +111,18 @@ router.get('/guides', async (_req: Request, res: Response) => {
 
 router.post('/guides', async (req, res) => {
   try {
-    const guideProfileData = guideProfileSchema.parse(req.body);
-    const profile = await storage.createGuideProfile(guideProfileData);
-    res.status(201).json(profile);
+    const guideProfileData = {
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await storage.guideProfiles.insertOne(guideProfileData);
+    const guideProfile = { ...guideProfileData, id: result.insertedId.toString() };
+    res.status(201).json(guideProfile);
   } catch (error) {
-    handleError(error, res);
+    console.error('Error creating guide profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -146,7 +151,14 @@ router.get('/places/:id', async (req, res) => {
 
 router.post('/places', async (req, res) => {
   try {
-    const placeData = placeSchema.parse(req.body);
+    const placeData = {
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    if (!validatePlace(placeData)) {
+      return res.status(400).json({ error: 'Invalid place data' });
+    }
     const place = await storage.createPlace(placeData);
     res.status(201).json(place);
   } catch (error) {
@@ -235,22 +247,67 @@ Please provide:
 // Login route
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await storage.getUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    console.log("============ LOGIN REQUEST ============");
+    console.log("Login request body:", JSON.stringify(req.body, null, 2));
+    
+    // Extract credentials from request body
+    const { username, password, email } = req.body;
+    
+    // Check if required fields are provided
+    if ((!username && !email) || !password) {
+      console.error("Missing required fields");
+      return res.status(400).json({ message: "Email/username and password are required" });
     }
-
-    // TODO: Add proper password hashing and comparison
+    
+    let dbUser = null;
+    
+    // First try to find by username if provided
+    if (username) {
+      console.log("Looking up user by username:", username);
+      dbUser = await db.collection('users').findOne({ username });
+    }
+    
+    // If no user found and email provided, try by email
+    if (!dbUser && email) {
+      console.log("Looking up user by email:", email);
+      dbUser = await db.collection('users').findOne({ email });
+    }
+    
+    // Check if user was found
+    if (!dbUser) {
+      console.error("User not found");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    
+    // Convert MongoDB document to User type
+    const user: User = {
+      id: dbUser._id.toString(),
+      name: dbUser.name,
+      email: dbUser.email,
+      password: dbUser.password,
+      userType: dbUser.userType,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt
+    };
+    
+    console.log("User found:", user.name);
+    
+    // Verify password
     if (user.password !== password) {
-      return res.status(401).json({ error: 'Invalid password' });
+      console.error(`Invalid password. Expected: ${user.password}, Received: ${password}`);
+      return res.status(401).json({ message: "Invalid credentials" });
     }
-
+    
+    // Create response without password
     const { password: _, ...userWithoutPassword } = user;
+
     console.log("Login successful for user:", userWithoutPassword.name);
-    res.json(userWithoutPassword);
+    console.log("============ END LOGIN REQUEST ============");
+    return res.json(userWithoutPassword);
   } catch (error) {
-    handleError(error, res);
+    console.error("Unhandled login error:", error);
+    console.error("============ END LOGIN REQUEST WITH ERROR ============");
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -262,8 +319,7 @@ router.post('/itineraries', async (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    const validatedData = itinerarySchema.parse(tripData);
-    const trip = await storage.createItinerary(validatedData);
+    const trip = await storage.createItinerary(tripData);
     res.status(201).json(trip);
   } catch (error) {
     handleError(error, res);
@@ -299,45 +355,41 @@ export function setupRoutes(app: Express, storage: IStorage) {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      const validatedData = userSchema.parse(userData);
-      const existingUser = await storage.users.findOne({ email: validatedData.email });
+      
+      if (!validateUser(userData)) {
+        return res.status(400).json({ error: 'Invalid user data' });
+      }
+      
+      const existingUser = await storage.users.findOne({ email: userData.email });
       
       if (existingUser) {
         return res.status(400).json({ error: 'Email already registered' });
       }
       
-      const result = await storage.users.insertOne(validatedData);
-      const user = { ...validatedData, id: result.insertedId.toString() };
+      const result = await storage.users.insertOne(userData);
+      const user = { ...userData, id: result.insertedId.toString() };
       res.status(201).json(user);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: fromZodError(error).message });
-      } else {
-        console.error('Error creating user:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Create guide profile
   app.post('/api/guides', async (req, res) => {
     try {
-      const guideProfileData = guideProfileSchema.parse(req.body);
-      const result = await storage.guideProfiles.insertOne({
-        ...guideProfileData,
+      const guideProfileData = {
+        ...req.body,
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
       
+      const result = await storage.guideProfiles.insertOne(guideProfileData);
       const guideProfile = { ...guideProfileData, id: result.insertedId.toString() };
       res.status(201).json(guideProfile);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: fromZodError(error).message });
-      } else {
-        console.error('Error creating guide profile:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.error("Error creating guide profile:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -354,60 +406,75 @@ export function setupRoutes(app: Express, storage: IStorage) {
   // Create place
   app.post('/api/places', async (req, res) => {
     try {
-      const placeData = placeSchema.parse(req.body);
-      const place = await storage.createPlace(placeData);
-      res.status(201).json(place);
+      const placeData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      if (!validatePlace(placeData)) {
+        return res.status(400).json({ error: "Invalid place data" });
+      }
+      const { id, ...placeWithoutId } = placeData;
+      const place = await storage.createPlace(placeWithoutId);
+      return res.status(201).json(place);
     } catch (error) {
-      handleError(error, res);
+      return res.status(500).json({ message: "Server error" });
     }
   });
 
   // Create itinerary
   app.post('/api/itineraries', async (req, res) => {
     try {
-      const itineraryData = itinerarySchema.parse({
+      const itineraryData = {
         ...req.body,
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
       const itinerary = await storage.createItinerary(itineraryData);
-      res.status(201).json(itinerary);
+      return res.status(201).json(itinerary);
     } catch (error) {
-      handleError(error, res);
+      return res.status(500).json({ message: "Server error" });
     }
   });
 
   // Add place to itinerary
   app.post('/api/itineraries/:id/places', async (req, res) => {
     try {
-      const itineraryPlaceData = itineraryPlaceSchema.parse({
+      const itineraryId = req.params.id;
+      const itineraryPlaceData = {
         ...req.body,
-        itineraryId: req.params.id
-      });
+        itineraryId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       
       const result = await storage.itineraryPlaces.insertOne(itineraryPlaceData);
-      res.json({ id: result.insertedId });
+      const itineraryPlace = { ...itineraryPlaceData, id: result.insertedId.toString() };
+      res.status(201).json(itineraryPlace);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: fromZodError(error).message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.error('Error adding place to itinerary:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Create booking
   app.post('/api/bookings', async (req, res) => {
     try {
-      const bookingData = bookingSchema.parse(req.body);
-      const result = await storage.bookings.insertOne(bookingData);
-      res.json({ id: result.insertedId });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: fromZodError(error).message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
+      const bookingData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      if (!validateBooking(bookingData)) {
+        return res.status(400).json({ error: 'Invalid booking data' });
       }
+      
+      const booking = await storage.createBooking(bookingData);
+      res.json(booking);
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      res.status(400).json({ error: "Invalid booking data" });
     }
   });
 
@@ -440,7 +507,7 @@ export function setupRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // Save place for user
+  // Save place
   app.post('/api/saved-places', async (req, res) => {
     try {
       const savedPlaceData = {
@@ -448,15 +515,13 @@ export function setupRoutes(app: Express, storage: IStorage) {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      const validatedSavedPlace = savedPlaceSchema.parse(savedPlaceData);
-      const result = await storage.savedPlaces.insertOne(validatedSavedPlace);
-      res.json({ id: result.insertedId });
+      
+      const result = await storage.savedPlaces.insertOne(savedPlaceData);
+      const savedPlace = { ...savedPlaceData, id: result.insertedId.toString() };
+      res.status(201).json(savedPlace);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.error('Error saving place:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -583,49 +648,45 @@ export function setupRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      try {
-        const validatedData = userSchema.omit({ id: true }).parse(userData);
-        console.log("Parsed user data:", JSON.stringify(validatedData, null, 2));
-        
-        const existingUser = await storage.getUserByEmail(validatedData.email);
-        console.log("Existing user check:", existingUser ? "User exists" : "User doesn't exist");
-        
-        if (existingUser) {
-          return res.status(400).json({ message: "Email already exists" });
-        }
-
-        console.log("Creating user with data:", JSON.stringify(validatedData, null, 2));
-        const user = await storage.createUser(validatedData);
-        console.log("User created with ID:", user.id);
-
-        // If user is a guide, create guide profile
-        if (validatedData.userType === "guide" && req.body.guideProfile) {
-          try {
-            console.log("Creating guide profile for user:", user.id);
-            const guideProfileData = guideProfileSchema.omit({ id: true }).parse({
-              ...req.body.guideProfile,
-              userId: user.id,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-
-            await storage.createGuideProfile(guideProfileData);
-            console.log("Guide profile created");
-          } catch (guideProfileError) {
-            console.error("Error creating guide profile:", guideProfileError);
-          }
-        }
-
-        // Don't return password
-        const { password, ...userWithoutPassword } = user;
-
-        console.log("Registration successful");
-        console.log("============ END REGISTRATION REQUEST ============");
-        return res.status(201).json(userWithoutPassword);
-      } catch (error) {
-        console.error("Error:", error);
-        return res.status(500).json({ message: "Server error" });
+      if (!validateUser(userData)) {
+        return res.status(400).json({ message: "Invalid user data" });
       }
+      
+      const existingUser = await storage.getUserByEmail(userData.email);
+      console.log("Existing user check:", existingUser ? "User exists" : "User doesn't exist");
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      console.log("Creating user with data:", JSON.stringify(userData, null, 2));
+      const user = await storage.createUser(userData);
+      console.log("User created with ID:", user.id);
+
+      // If user is a guide, create guide profile
+      if (userData.userType === "guide" && req.body.guideProfile) {
+        try {
+          console.log("Creating guide profile for user:", user.id);
+          const guideProfileData = {
+            ...req.body.guideProfile,
+            userId: user.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          await storage.createGuideProfile(guideProfileData);
+          console.log("Guide profile created");
+        } catch (guideProfileError) {
+          console.error("Error creating guide profile:", guideProfileError);
+        }
+      }
+
+      // Don't return password
+      const { password, ...userWithoutPassword } = user;
+
+      console.log("Registration successful");
+      console.log("============ END REGISTRATION REQUEST ============");
+      return res.status(201).json(userWithoutPassword);
     } catch (error) {
       console.error("Unhandled registration error:", error);
       console.error("============ END REGISTRATION REQUEST WITH ERROR ============");
@@ -687,58 +748,55 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(400).json({ message: "Email/username and password are required" });
       }
       
-      let user = null;
+      let dbUser = null;
       
       // First try to find by username if provided
       if (username) {
         console.log("Looking up user by username:", username);
-        user = await db.collection('users').findOne({ username });
+        dbUser = await db.collection('users').findOne({ username });
       }
       
       // If no user found and email provided, try by email
-      if (!user && email) {
+      if (!dbUser && email) {
         console.log("Looking up user by email:", email);
-        user = await db.collection('users').findOne({ email });
+        dbUser = await db.collection('users').findOne({ email });
       }
       
       // Check if user was found
-      if (!user) {
+      if (!dbUser) {
         console.error("User not found");
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Convert MongoDB _id to id and ensure it's a string
-      const userId = user._id.toString();
-      console.log("Converted user ID:", userId);
+      // Convert MongoDB document to User type
+      const user: User = {
+        id: dbUser._id.toString(),
+        name: dbUser.name,
+        email: dbUser.email,
+        password: dbUser.password,
+        userType: dbUser.userType,
+        createdAt: dbUser.createdAt,
+        updatedAt: dbUser.updatedAt
+      };
       
-      // Create user object with string ID while preserving all properties
-      const userWithStringId = userSchema.parse({ 
-        ...user, 
-        id: userId,
-        _id: undefined // Remove MongoDB _id
-      });
-      
-      console.log("User found:", userWithStringId.name);
+      console.log("User found:", user.name);
       
       // Verify password
-      if (userWithStringId.password !== password) {
-        console.error(`Invalid password. Expected: ${userWithStringId.password}, Received: ${password}`);
+      if (user.password !== password) {
+        console.error(`Invalid password. Expected: ${user.password}, Received: ${password}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Create response without password
-      const { password: _, ...userWithoutPassword } = userWithStringId;
+      const { password: _, ...userWithoutPassword } = user;
 
       console.log("Login successful for user:", userWithoutPassword.name);
       console.log("============ END LOGIN REQUEST ============");
-      
-      // Return user data in the format expected by client
       return res.json(userWithoutPassword);
-      
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Unhandled login error:", error);
       console.error("============ END LOGIN REQUEST WITH ERROR ============");
-      return res.status(500).json({ message: "Server error", error: String(error) });
+      return res.status(500).json({ message: "Server error" });
     }
   });
 
@@ -913,14 +971,18 @@ export function setupRoutes(app: Express, storage: IStorage) {
 
   app.post("/api/places", async (req, res) => {
     try {
-      const placeData = placeSchema.parse(req.body);
+      const placeData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      if (!validatePlace(placeData)) {
+        return res.status(400).json({ error: "Invalid place data" });
+      }
       const { id, ...placeWithoutId } = placeData;
       const place = await storage.createPlace(placeWithoutId);
       return res.status(201).json(place);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -1047,17 +1109,17 @@ export function setupRoutes(app: Express, storage: IStorage) {
         return res.status(400).json({ message: "Invalid itinerary ID" });
       }
 
-      const itineraryPlaceData = itineraryPlaceSchema.parse({
+      const itineraryPlaceData = {
         ...req.body,
-        itineraryId
-      });
+        itineraryId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       const itineraryPlace = await storage.createItineraryPlace(itineraryPlaceData);
       return res.status(201).json(itineraryPlace);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
+      console.error("Error creating itinerary place:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -1081,7 +1143,16 @@ export function setupRoutes(app: Express, storage: IStorage) {
 
   app.post("/api/bookings", async (req, res) => {
     try {
-      const bookingData = bookingSchema.parse(req.body);
+      const bookingData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      if (!validateBooking(bookingData)) {
+        return res.status(400).json({ error: "Invalid booking data" });
+      }
+      
       const booking = await storage.createBooking(bookingData);
       res.json(booking);
     } catch (error) {
