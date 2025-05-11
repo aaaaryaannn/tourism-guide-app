@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from './config/index.js';
 import { RequestHandler } from 'express';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
@@ -14,7 +15,10 @@ interface AuthUser {
 }
 
 interface AuthenticatedRequest extends Request {
-  user?: AuthUser;
+  user: {
+    userId: string;
+    email: string;
+  };
 }
 
 // Error handler middleware
@@ -43,6 +47,12 @@ const authenticateToken: RequestHandler = (req: Request, res: Response, next: Ne
     next();
   });
 };
+
+// Helper function to handle authenticated routes
+const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => Promise<any>): RequestHandler => 
+  asyncHandler(async (req, res, next) => {
+    await handler(req as AuthenticatedRequest, res);
+  });
 
 // Routes
 router.post('/auth/register', asyncHandler(async (req, res) => {
@@ -102,33 +112,15 @@ router.post('/auth/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get user profile
-router.get('/auth/profile', authenticateToken, handleAuthRoute(async (req, res) => {
-  const { userId } = req.user!;
-  
-  // Get user data
-  const user = await storage.getUserByEmail(userId);
+// Auth routes
+router.get('/auth/profile', authenticateToken, handleAuthRoute(async (req: AuthenticatedRequest, res) => {
+  const user = await storage.users.findOne({ _id: new ObjectId(req.user.userId) });
   if (!user) {
     return res.status(404).json({ message: 'User not found' });
   }
-
-  // Get guide profile if exists
-  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
-
-  // Return user data without password
-  const { password: _, ...userData } = user.toObject();
-  
-  res.json({
-    ...userData,
-    isGuide: !!guideProfile
-  });
+  const { password, ...userWithoutPassword } = user;
+  return res.json(userWithoutPassword);
 }));
-
-// Helper function to handle authenticated routes
-const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => Promise<void>): RequestHandler => 
-  asyncHandler(async (req, res, next) => {
-    await handler(req as AuthenticatedRequest, res);
-  });
 
 router.post('/guide-profile', authenticateToken, handleAuthRoute(async (req, res) => {
   const { userId } = req.user!;
