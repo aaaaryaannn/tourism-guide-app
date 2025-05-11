@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { db } from './db.js';
-import { setupRoutes } from './routes.js';
+import routes from './routes.js';
 import { storage } from './storage.js';
 import { config } from './config/index.js';
 
@@ -52,7 +52,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Setup routes with /api prefix
-app.use('/api', setupRoutes());
+app.use('/api', routes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -50,7 +50,7 @@ router.post('/register', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   
   // Check if user exists
-  const existingUser = await storage.findUserByEmail(email);
+  const existingUser = await storage.getUserByEmail(email);
   if (existingUser) {
     return res.status(400).json({ message: 'User already exists' });
   }
@@ -68,7 +68,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Find user
-  const user = await storage.findUserByEmail(email);
+  const user = await storage.getUserByEmail(email);
   if (!user) {
     return res.status(400).json({ message: 'Invalid credentials' });
   }
@@ -101,12 +101,12 @@ router.post('/guide-profile', authenticateToken, asyncHandler<AuthenticatedReque
 }));
 
 router.get('/guide-profiles', asyncHandler(async (req, res) => {
-  const profiles = await storage.getAllGuideProfiles();
+  const profiles = await storage.guideProfiles.find();
   res.json(profiles);
 }));
 
 router.get('/guide-profile/:id', asyncHandler(async (req, res) => {
-  const profile = await storage.getGuideProfileById(req.params.id);
+  const profile = await storage.guideProfiles.findById(req.params.id);
   if (!profile) {
     return res.status(404).json({ message: 'Profile not found' });
   }
@@ -120,7 +120,7 @@ router.post('/places', authenticateToken, asyncHandler<AuthenticatedRequest>(asy
 }));
 
 router.get('/places', asyncHandler(async (req, res) => {
-  const places = await storage.getAllPlaces();
+  const places = await storage.getPlaces();
   res.json(places);
 }));
 
@@ -153,7 +153,7 @@ router.post('/bookings', authenticateToken, asyncHandler<AuthenticatedRequest>(a
 }));
 
 router.get('/user-connections/:userId', asyncHandler(async (req, res) => {
-  const connections = await storage.getUserConnections(req.params.userId);
+  const connections = await storage.getConnections(req.params.userId);
   res.json(connections);
 }));
 
