@@ -1,5 +1,4 @@
 import { useLocation } from "wouter";
-import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,15 +7,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
 import { useToast } from "../hooks/use-toast";
-import { apiRequest } from "../lib/queryClient";
+import { useState } from "react";
+import { API_URL } from '../lib/constants';
 
 const registerSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  username: z.string().min(4, "Username must be at least 4 characters"),
+  name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Confirm your password"),
+  confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -24,28 +22,18 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const RegisterScreen: React.FC = () => {
+const RegisterScreen = () => {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-  const [userType, setUserType] = useState<'tourist' | 'guide'>('tourist');
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const storedRole = localStorage.getItem('selectedRole') as 'tourist' | 'guide' | null;
-    if (storedRole) {
-      setUserType(storedRole);
-    }
-  }, []);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: "",
-      username: "",
+      name: "",
       email: "",
-      phone: "",
       password: "",
-      confirmPassword: "",
+      confirmPassword: ""
     },
   });
 
@@ -53,28 +41,44 @@ const RegisterScreen: React.FC = () => {
     try {
       setIsLoading(true);
       
-      const { confirmPassword, ...userData } = data;
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          userType: 'tourist' // Default to tourist
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const result = await response.json();
       
-      const response = await apiRequest("POST", "/api/auth/register", {
-        ...userData,
-        userType,
+      toast({
+        title: "Registration successful",
+        description: "Welcome to Maharashtra Wanderer! Please log in to continue.",
+        duration: 5000,
       });
       
-      if (response.ok) {
-        toast({
-          title: "Registration successful",
-          description: "You can now login to your account",
-        });
-        setLocation("/login");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
-      }
+      // Redirect to login page
+      setLocation("/login");
+      
     } catch (error) {
+      console.error("Registration failed:", error);
+      
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "An error occurred during registration",
+        description: error instanceof Error ? error.message : "An error occurred during registration. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -86,7 +90,7 @@ const RegisterScreen: React.FC = () => {
       <h1 className="text-2xl font-bold font-sans mb-6">Maharashtra Wanderer</h1>
       <Card className="w-full max-w-sm">
         <CardContent className="p-6">
-          <h2 className="text-xl font-medium mb-4">Create a new account</h2>
+          <h2 className="text-xl font-medium mb-4">Create your account</h2>
           
           <div className="flex mb-6 border-b">
             <button 
@@ -100,28 +104,11 @@ const RegisterScreen: React.FC = () => {
             </button>
           </div>
           
-          <div className="flex space-x-2 mb-4">
-            <Button
-              type="button"
-              className={`flex-1 py-2 ${userType === 'tourist' ? 'bg-[#DC143C] text-white' : 'bg-white text-gray-600 border border-gray-300'}`}
-              onClick={() => setUserType('tourist')}
-            >
-              Tourist
-            </Button>
-            <Button
-              type="button"
-              className={`flex-1 py-2 ${userType === 'guide' ? 'bg-[#DC143C] text-white' : 'bg-white text-gray-600 border border-gray-300'}`}
-              onClick={() => setUserType('guide')}
-            >
-              Guide
-            </Button>
-          </div>
-          
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
@@ -134,37 +121,11 @@ const RegisterScreen: React.FC = () => {
               
               <FormField
                 control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input placeholder="Username" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Email" type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input placeholder="Phone Number" type="tel" {...field} />
+                      <Input type="email" placeholder="Email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -177,7 +138,7 @@ const RegisterScreen: React.FC = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Password" type="password" {...field} />
+                      <Input type="password" placeholder="Password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -190,7 +151,7 @@ const RegisterScreen: React.FC = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Confirm Password" type="password" {...field} />
+                      <Input type="password" placeholder="Confirm Password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,7 +160,7 @@ const RegisterScreen: React.FC = () => {
               
               <Button 
                 type="submit" 
-                className="w-full py-3 bg-[#DC143C] hover:bg-[#B01030] text-white"
+                className="w-full py-6 bg-[#DC143C] hover:bg-[#B01030] text-white"
                 disabled={isLoading}
               >
                 {isLoading ? "Creating Account..." : "Create Account"}

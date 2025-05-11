@@ -67,6 +67,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ login }) => {
         title: "Login failed",
         description: error instanceof Error ? error.message : "Invalid username or password. Please try again.",
         variant: "destructive",
+        duration: 5000, // Show for 5 seconds
       });
     } finally {
       setIsLoading(false);

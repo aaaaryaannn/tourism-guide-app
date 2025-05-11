@@ -1,9 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { API_URL } from './constants';
+
+type UnauthorizedBehavior = "throw" | "returnNull";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const error = await res.json().catch(() => ({ message: 'An error occurred' }));
+    throw new Error(error.message || `HTTP error! status: ${res.status}`);
   }
 }
 
@@ -30,21 +33,19 @@ export async function apiRequest(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  // Make sure the URL starts with /api
-  const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+  // Make sure the URL starts with /api and use the correct base URL
+  const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url}`}`;
   
   const res = await fetch(apiUrl, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    body: data ? JSON.stringify(data) : undefined
   });
 
   await throwIfResNotOk(res);
   return res;
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
@@ -63,13 +64,12 @@ export const getQueryFn: <T>(options: {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Make sure the URL starts with /api
+    // Make sure the URL starts with /api and use the correct base URL
     const url = queryKey[0] as string;
-    const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+    const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url}`}`;
     
     const res = await fetch(apiUrl, {
-      headers,
-      credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
