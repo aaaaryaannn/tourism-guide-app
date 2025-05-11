@@ -5,8 +5,8 @@ type UnauthorizedBehavior = "throw" | "returnNull";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${res.status}`);
+    const text = await res.text();
+    throw new Error(text);
   }
 }
 
@@ -33,8 +33,8 @@ export async function apiRequest(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  // Make sure the URL starts with /api and use the correct base URL
-  const apiUrl = `${API_URL}/api${url.startsWith('/') ? url : `/${url}`}`;
+  // Ensure URL starts with /api and use the correct base URL
+  const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url.startsWith('/') ? url : `/${url}`}`}`;
   
   console.log('Making request to:', apiUrl);
   
@@ -66,9 +66,9 @@ export const getQueryFn: <T>(options: {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Make sure the URL starts with /api and use the correct base URL
+    // Ensure URL starts with /api and use the correct base URL
     const url = queryKey[0] as string;
-    const apiUrl = `${API_URL}/api${url.startsWith('/') ? url : `/${url}`}`;
+    const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url.startsWith('/') ? url : `/${url}`}`}`;
     
     console.log('Making query to:', apiUrl);
     

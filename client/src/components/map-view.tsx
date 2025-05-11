@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet.locatecontrol";
+import "leaflet.locatecontrol/dist/L.Control.Locate.css";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent } from "./ui/sheet";
 import fixLeafletMapErrors from "../lib/leaflet-fix";
@@ -125,38 +125,59 @@ const MapView: React.FC<MapViewProps> = ({
       });
       
       if (mapRef.current) {
-        // Add tile layer - using OpenStreetMap
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 19
-        }).addTo(mapRef.current);
-        
-        // Add zoom control to top right
-        L.control.zoom({ position: "topright" }).addTo(mapRef.current);
+        try {
+          // Add tile layer - using OpenStreetMap
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+          }).addTo(mapRef.current);
+          
+          // Add zoom control to top right
+          L.control.zoom({ position: "topright" }).addTo(mapRef.current);
 
-        // Add location control
-        // @ts-ignore - LocateControl is not in the type definitions
-        L.control.locate({
-          position: 'topright',
-          strings: {
-            title: "Show my location"
-          } as Record<string, string>,
-          flyTo: true,
-          cacheLocation: false,
-          showCompass: true,
-          showPopup: false,
-          locateOptions: {
-            enableHighAccuracy: true
+          // Add location control with error handling
+          try {
+            const locateControl = new (L.Control as any).Locate({
+              position: 'topright',
+              strings: {
+                title: "Show my location"
+              },
+              flyTo: true,
+              cacheLocation: false,
+              showCompass: true,
+              showPopup: false,
+              locateOptions: {
+                enableHighAccuracy: true
+              }
+            });
+            
+            // Add the control to the map
+            locateControl.addTo(mapRef.current);
+            
+            // Handle location found event
+            mapRef.current.on('locationfound', (e: L.LocationEvent) => {
+              console.log('Location found:', e.latlng);
+              setUserLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
+            });
+            
+            // Handle location error event
+            mapRef.current.on('locationerror', (e: L.ErrorEvent) => {
+              console.error('Location error:', e.message);
+            });
+          } catch (locateError) {
+            console.error('[MapView] Error adding locate control:', locateError);
           }
-        } as L.ControlOptions).addTo(mapRef.current);
-        
-        // Handle map click events if callback provided
-        if (onMapClick) {
-          mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
-            const { lat, lng } = e.latlng;
-            onMapClick({ lat, lng });
-          });
+          
+          // Handle map click events if callback provided
+          if (onMapClick) {
+            mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
+              const { lat, lng } = e.latlng;
+              onMapClick({ lat, lng });
+            });
+          }
+        } catch (err) {
+          console.error('[MapView] Error initializing map components:', err);
         }
       }
     }

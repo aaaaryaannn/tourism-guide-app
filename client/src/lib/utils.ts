@@ -7,15 +7,23 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function api(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  // Ensure endpoint starts with /api
+  const apiUrl = `${API_URL}${endpoint.startsWith('/api') ? endpoint : `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`}`;
+  
+  console.log('Making API request to:', apiUrl);
+  
+  const response = await fetch(apiUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers
     }
   });
+  
   if (!response.ok) {
-    throw new Error('API request failed');
+    const text = await response.text();
+    throw new Error(text);
   }
+  
   return response.json();
 }
