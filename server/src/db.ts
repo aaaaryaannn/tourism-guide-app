@@ -18,9 +18,13 @@ const connectWithRetry = async () => {
 
       console.log('Successfully connected to MongoDB');
       return;
-    } catch (error) {
+    } catch (error: unknown) {
       retries++;
-      console.error(`MongoDB connection attempt ${retries} failed:`, error.message);
+      if (error instanceof Error) {
+        console.error(`MongoDB connection attempt ${retries} failed:`, error.message);
+      } else {
+        console.error(`MongoDB connection attempt ${retries} failed with unknown error`);
+      }
       
       if (retries === MAX_RETRIES) {
         console.error('Max retries reached. Could not connect to MongoDB');
@@ -33,9 +37,7 @@ const connectWithRetry = async () => {
   }
 };
 
-export { connectWithRetry as connect };
-
-// Handle connection events
+// Event handlers
 mongoose.connection.on('connected', () => {
   console.log('Mongoose connected to MongoDB Atlas');
 });
@@ -53,4 +55,10 @@ process.on('SIGINT', async () => {
   await mongoose.connection.close();
   console.log('MongoDB connection closed through app termination');
   process.exit(0);
-}); 
+});
+
+// Export the db object with connect and disconnect methods
+export const db = {
+  connect: connectWithRetry,
+  disconnect: () => mongoose.disconnect()
+}; 
