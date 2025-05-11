@@ -8,24 +8,28 @@ import { config } from './config/index.js';
 
 const app = express();
 
-// CORS configuration - More permissive for development
-app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-}));
+// Enable detailed logging for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
+// CORS configuration
+app.use(cors());
+
+// Enable pre-flight requests for all routes
+app.options('*', cors());
 
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(config.mongodbUri)
-  .then(() => console.log('Connected to MongoDB:', config.mongodbUri))
-  .catch((error: Error) => console.error('MongoDB connection error:', error));
+// Test route to verify server is running
+app.get('/', (req, res) => {
+  res.json({ message: 'Server is running' });
+});
 
 // Health check route
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', (req, res) => {
   const healthcheck = {
     uptime: process.uptime(),
     message: 'OK',
@@ -33,12 +37,17 @@ app.get('/api/health', (_req, res) => {
     mongodbStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   };
   try {
-    res.send(healthcheck);
+    res.json(healthcheck);
   } catch (error) {
     healthcheck.message = error instanceof Error ? error.message : 'Error';
-    res.status(503).send(healthcheck);
+    res.status(503).json(healthcheck);
   }
 });
+
+// Connect to MongoDB
+mongoose.connect(config.mongodbUri)
+  .then(() => console.log('Connected to MongoDB:', config.mongodbUri))
+  .catch((error: Error) => console.error('MongoDB connection error:', error));
 
 // Setup routes with /api prefix
 app.use('/api', routes);
@@ -46,15 +55,19 @@ app.use('/api', routes);
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ message: 'Internal server error' });
+  res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
 // Handle 404 routes
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not found' });
+app.use((req, res) => {
+  console.log('404 Not Found:', req.method, req.url);
+  res.status(404).json({ error: 'Not found', path: req.url });
 });
 
 // Start server
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('CORS enabled for all origins');
+  console.log('Environment:', process.env.NODE_ENV);
 }); 

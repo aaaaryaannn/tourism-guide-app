@@ -56,27 +56,61 @@ const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => 
 
 // Routes
 router.post('/auth/register', asyncHandler(async (req, res) => {
-  const { email, password, name, userType } = req.body;
-  
-  // Check if user exists
-  const existingUser = await storage.getUserByEmail(email);
-  if (existingUser) {
-    return res.status(400).json({ message: 'User already exists' });
+  try {
+    console.log('Registration request received:', {
+      body: req.body,
+      headers: req.headers
+    });
+
+    const { email, password, name, userType } = req.body;
+    
+    // Validate required fields
+    if (!email || !password || !name) {
+      console.log('Missing required fields');
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        received: { email: !!email, password: !!password, name: !!name }
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await storage.getUserByEmail(email);
+    if (existingUser) {
+      console.log('User already exists:', email);
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user
+    const user = await storage.createUser({ 
+      email, 
+      password: hashedPassword,
+      name,
+      userType: userType || 'tourist'
+    });
+    
+    console.log('User created successfully:', {
+      userId: user._id,
+      email: user.email,
+      name: user.name
+    });
+
+    res.status(201).json({ 
+      message: 'User created successfully', 
+      userId: user._id,
+      email: user.email,
+      name: user.name
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      message: 'Registration failed', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
-
-  // Hash password
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  // Create user
-  const user = await storage.createUser({ 
-    email, 
-    password: hashedPassword,
-    name,
-    userType: userType || 'tourist'
-  });
-  
-  res.status(201).json({ message: 'User created successfully', userId: user._id });
 }));
 
 router.post('/auth/login', asyncHandler(async (req, res) => {
