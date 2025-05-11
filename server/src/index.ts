@@ -1,9 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
+import { db } from './db.js';
+import { setupRoutes } from './routes.js';
+import { storage } from './storage.js';
 import { config } from './config';
-import { setupRoutes } from './routes';
-import { storage } from './storage';
 
 const app = express();
 
@@ -54,12 +54,9 @@ app.get('/api/health', (_req, res) => {
 setupRoutes(app, storage);
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+  res.status(500).json({ message: 'Internal server error' });
 });
 
 // Handle 404 routes
