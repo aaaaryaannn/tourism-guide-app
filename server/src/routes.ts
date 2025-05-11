@@ -54,12 +54,26 @@ const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => 
     await handler(req as AuthenticatedRequest, res);
   });
 
+// Handle preflight requests for registration
+router.options('/auth/register', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).send();
+});
+
 // Routes
 router.post('/auth/register', asyncHandler(async (req, res) => {
   try {
+    // Set CORS headers for the actual request
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     console.log('Registration request received:', {
       body: req.body,
-      headers: req.headers
+      headers: req.headers,
+      method: req.method
     });
 
     const { email, password, name, userType } = req.body;

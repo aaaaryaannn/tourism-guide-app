@@ -8,18 +8,29 @@ import { config } from './config/index.js';
 
 const app = express();
 
+// CORS configuration - Must be first!
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle OPTIONS method
+  if (req.method === 'OPTIONS') {
+    return res.status(200).json({
+      body: "OK"
+    });
+  }
+  
+  next();
+});
+
 // Enable detailed logging for debugging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   console.log('Headers:', req.headers);
   next();
 });
-
-// CORS configuration
-app.use(cors());
-
-// Enable pre-flight requests for all routes
-app.options('*', cors());
 
 app.use(express.json());
 
