@@ -52,7 +52,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Setup routes with /api prefix
-app.use('/api', setupRoutes(express.Router(), storage));
+app.use('/api', setupRoutes());
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
