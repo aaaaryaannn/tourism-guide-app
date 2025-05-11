@@ -3,6 +3,7 @@ import { storage } from './storage.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from './config/index.js';
+import { RequestHandler } from 'express';
 
 const router = express.Router();
 
@@ -14,147 +15,146 @@ interface AuthenticatedRequest extends express.Request {
   };
 }
 
-type AsyncRequestHandler = (
-  req: express.Request | AuthenticatedRequest,
+type AsyncHandler<T extends express.Request = express.Request> = (
+  req: T,
   res: express.Response,
   next: express.NextFunction
 ) => Promise<any>;
 
 // Error handler middleware
-const asyncHandler = (fn: AsyncRequestHandler) => 
-  (req: express.Request | AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = <T extends express.Request>(fn: AsyncHandler<T>): RequestHandler => 
+  (req, res, next) => {
+    Promise.resolve(fn(req as T, res, next)).catch(next);
   };
 
-// Authentication middleware
-const authenticate = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No token provided' });
+// Auth middleware
+const authenticateToken = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
   }
 
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string; email: string };
-    req.user = decoded;
+  jwt.verify(token, config.jwtSecret, (err: any, user: any) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+    req.user = user;
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+  });
 };
 
 // Routes
-router.post('/register', asyncHandler(async (req: express.Request, res: express.Response) => {
-  const { email, password, name, userType } = req.body;
-  
-  const existingUser = await storage.getUserByEmail(email);
-  if (existingUser) {
-    return res.status(400).json({ error: 'Email already registered' });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await storage.createUser({
-    email,
-    password: hashedPassword,
-    name,
-    userType
-  });
-
-  const token = jwt.sign({ userId: user._id, email: user.email }, config.jwtSecret, { expiresIn: '24h' });
-  res.status(201).json({ user, token });
-}));
-
-router.post('/login', asyncHandler(async (req: express.Request, res: express.Response) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   
-  const user = await storage.getUserByEmail(email);
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  // Check if user exists
+  const existingUser = await storage.findUserByEmail(email);
+  if (existingUser) {
+    return res.status(400).json({ message: 'User already exists' });
   }
 
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+  // Hash password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-  const token = jwt.sign({ userId: user._id, email: user.email }, config.jwtSecret, { expiresIn: '24h' });
-  const { password: _, ...userWithoutPassword } = user.toObject();
-  res.json({ user: userWithoutPassword, token });
+  // Create user
+  const user = await storage.createUser({ email, password: hashedPassword });
+  res.status(201).json({ message: 'User created successfully', userId: user._id });
 }));
 
-router.post('/guide-profiles', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+router.post('/login', asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  // Find user
+  const user = await storage.findUserByEmail(email);
+  if (!user) {
+    return res.status(400).json({ message: 'Invalid credentials' });
   }
-  
-  const profileData = {
-    ...req.body,
-    userId: req.user.userId
-  };
-  const profile = await storage.createGuideProfile(profileData);
+
+  // Check password
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (!validPassword) {
+    return res.status(400).json({ message: 'Invalid credentials' });
+  }
+
+  // Generate token
+  const token = jwt.sign({ userId: user._id, email: user.email }, config.jwtSecret);
+  res.json({ token });
+}));
+
+router.post('/guide-profile', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+  const { userId } = req.user!;
+  const { name, description, languages, expertise, hourlyRate } = req.body;
+
+  const profile = await storage.createGuideProfile({
+    userId,
+    name,
+    description,
+    languages,
+    expertise,
+    hourlyRate
+  });
+
   res.status(201).json(profile);
 }));
 
-router.get('/places', asyncHandler(async (req: express.Request, res: express.Response) => {
-  const places = await storage.getPlaces();
-  res.json(places);
+router.get('/guide-profiles', asyncHandler(async (req, res) => {
+  const profiles = await storage.getAllGuideProfiles();
+  res.json(profiles);
 }));
 
-router.get('/places/:id', asyncHandler(async (req: express.Request, res: express.Response) => {
-  const place = await storage.getPlace(req.params.id);
-  if (!place) {
-    return res.status(404).json({ error: 'Place not found' });
+router.get('/guide-profile/:id', asyncHandler(async (req, res) => {
+  const profile = await storage.getGuideProfileById(req.params.id);
+  if (!profile) {
+    return res.status(404).json({ message: 'Profile not found' });
   }
-  res.json(place);
+  res.json(profile);
 }));
 
-router.post('/places', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  const placeData = {
-    ...req.body,
-    createdBy: req.user.userId
-  };
-  const place = await storage.createPlace(placeData);
+router.post('/places', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+  const { name, description, location, images } = req.body;
+  const place = await storage.createPlace({ name, description, location, images });
   res.status(201).json(place);
 }));
 
-router.post('/itineraries', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.get('/places', asyncHandler(async (req, res) => {
+  const places = await storage.getAllPlaces();
+  res.json(places);
+}));
 
-  const itineraryData = {
-    ...req.body,
-    userId: req.user.userId
-  };
-  const itinerary = await storage.createItinerary(itineraryData);
+router.post('/itineraries', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+  const { userId } = req.user!;
+  const { places, startDate, endDate } = req.body;
+  
+  const itinerary = await storage.createItinerary({
+    userId,
+    places,
+    startDate,
+    endDate
+  });
+
   res.status(201).json(itinerary);
 }));
 
-router.post('/bookings', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.post('/bookings', authenticateToken, asyncHandler<AuthenticatedRequest>(async (req, res) => {
+  const { userId } = req.user!;
+  const { guideId, date, duration } = req.body;
 
-  const bookingData = {
-    ...req.body,
-    userId: req.user.userId,
-    status: 'pending'
-  };
-  const booking = await storage.createBooking(bookingData);
+  const booking = await storage.createBooking({
+    userId,
+    guideId,
+    date,
+    duration
+  });
+
   res.status(201).json(booking);
 }));
 
-router.get('/connections', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  const connections = await storage.getConnections(req.user.userId);
+router.get('/user-connections/:userId', asyncHandler(async (req, res) => {
+  const connections = await storage.getUserConnections(req.params.userId);
   res.json(connections);
 }));
 
-export const setupRoutes = () => router; 
+export default router; 
