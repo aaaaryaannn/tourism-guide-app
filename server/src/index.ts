@@ -32,7 +32,7 @@ app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect(config.mongodbUri)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => console.log('Connected to MongoDB:', config.mongodbUri))
   .catch((error: Error) => console.error('MongoDB connection error:', error));
 
 // Health check route
@@ -51,8 +51,8 @@ app.get('/api/health', (_req, res) => {
   }
 });
 
-// Setup routes
-setupRoutes(app, storage);
+// Setup routes with /api prefix
+app.use('/api', setupRoutes(express.Router(), storage));
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
