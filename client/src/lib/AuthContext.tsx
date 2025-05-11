@@ -23,32 +23,18 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 // Set user in global window object for compatibility with existing components
 const setGlobalUser = (user: ExtendedUser | null) => {
   if (user) {
     (window as any).auth = { user };
-    console.log("Set global user in window.auth:", user);
+    console.log("Setting global auth state with user:", user);
   } else {
     (window as any).auth = null;
-    console.log("Cleared global user from window.auth");
+    console.log("Cleared global auth state");
   }
-};
-
-// Helper function to create mock user data for demo logins
-export const createMockUser = (role: 'user' | 'guide'): ExtendedUser => {
-  const mockUser = {
-    id: role === 'guide' ? '101' : '102',
-    name: role === 'guide' ? 'Guide Demo' : 'Tourist Demo',
-    email: `${role}@example.com`,
-    password: 'demo123',
-    userType: role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    image: 'https://example.com/avatar.jpg',
-    phone: '+1234567890',
-    username: role === 'guide' ? 'johndoe' : undefined
-  };
-  return mockUser;
 };
 
 // Auth provider component
@@ -56,45 +42,71 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Immediately create a mock guide user for development
+  // Check for existing session on mount
   useEffect(() => {
-    console.log("AuthProvider initializing...");
-    setIsLoading(true);
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
     
-    // Always force a guide user for development
-    const mockUser = createMockUser('guide');
+    if (storedUser && storedToken) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setGlobalUser(parsedUser);
+      } catch (error) {
+        console.error("Failed to parse stored user:", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    }
     
-    // Set user in state
-    setUser(mockUser);
-    
-    // Set in global window object
-    setGlobalUser(mockUser);
-    
-    // Save to localStorage
-    localStorage.setItem("user", JSON.stringify(mockUser));
-    
-    console.log("Development mode: Auto-logged in as guide");
-    
-    // Short timeout to ensure the user state is properly set before rendering children
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log("AuthProvider initialization complete");
-    }, 100);
+    setIsLoading(false);
   }, []);
 
   // Login function
   const login = async (email: string, password: string): Promise<User | null> => {
-    console.log("Login attempt for:", email);
+    console.log("Attempting login for:", email);
     setIsLoading(true);
     
     try {
-      // Your login logic here
-      const user = createMockUser('guide'); // Replace with actual login logic
-      setUser(user);
-      return user;
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Login failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Save token
+      localStorage.setItem("token", data.token);
+      
+      // Get user profile
+      const userResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${data.token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(`Failed to fetch user profile: ${userResponse.statusText}`);
+      }
+
+      const userData = await userResponse.json();
+      
+      // Save user data
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+      setGlobalUser(userData);
+      
+      return userData;
     } catch (error: any) {
       console.error("Login failed:", error.message || error);
-      return null;
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -103,28 +115,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout function
   const logout = () => {
     console.log("Logging out");
-    
-    // Clear user state
     setUser(null);
-    
-    // Clear from global window object
     setGlobalUser(null);
-    
-    // Remove from localStorage
     localStorage.removeItem("user");
-    
-    console.log("Logout complete");
+    localStorage.removeItem("token");
   };
-
-  // Debug output for user state changes
-  useEffect(() => {
-    console.log("User state changed:", user);
-    if (user) {
-      console.log("User type:", user.userType);
-      console.log("Is guide:", user.isGuide);
-      console.log("Window auth object:", (window as any).auth);
-    }
-  }, [user]);
 
   // Create context value
   const contextValue: AuthContextType = {

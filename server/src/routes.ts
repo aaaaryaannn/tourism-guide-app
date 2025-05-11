@@ -162,4 +162,25 @@ router.get('/user-connections/:userId', asyncHandler(async (req, res) => {
   res.json(connections);
 }));
 
+// Get user profile
+router.get('/auth/profile', authenticateToken, handleAuthRoute(async (req, res) => {
+  const { userId } = req.user!;
+  
+  // Get user data
+  const user = await storage.getUserById(userId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Get guide profile if exists
+  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
+
+  // Return user data without password
+  const { password, ...userData } = user.toObject();
+  res.json({
+    ...userData,
+    isGuide: !!guideProfile
+  });
+}));
+
 export default router; 
