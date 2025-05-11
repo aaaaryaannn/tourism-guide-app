@@ -15,11 +15,19 @@ interface Config {
   corsOrigins: string[];
 }
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
+
 // Export configuration with proper type checking
 export const config: Config = {
   port: parseInt(process.env.PORT || '3000', 10),
-  mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/tourism_guide',
-  jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
+  mongodbUri: process.env.MONGODB_URI!,
+  jwtSecret: process.env.JWT_SECRET!,
   corsOrigins: [
     'https://aaaaryaannn.github.io',
     'http://localhost:5173',

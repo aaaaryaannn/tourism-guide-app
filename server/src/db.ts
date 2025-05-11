@@ -1,32 +1,39 @@
 import mongoose from 'mongoose';
 import { config } from './config/index.js';
 
-const connectWithRetry = async (retries = 5, delay = 5000): Promise<void> => {
-  for (let i = 0; i < retries; i++) {
+const connectWithRetry = async () => {
+  const MAX_RETRIES = 5;
+  const RETRY_DELAY = 5000; // 5 seconds
+  let retries = 0;
+
+  while (retries < MAX_RETRIES) {
     try {
+      console.log(`Attempting to connect to MongoDB (attempt ${retries + 1}/${MAX_RETRIES})`);
+      console.log(`Using MongoDB URI: ${config.mongodbUri.replace(/\/\/[^@]+@/, '//<credentials>@')}`);
+      
       await mongoose.connect(config.mongodbUri, {
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
-        retryWrites: true,
-        w: 'majority'
       });
-      console.log('Connected to MongoDB Atlas');
+
+      console.log('Successfully connected to MongoDB');
       return;
     } catch (error) {
-      console.error(`MongoDB connection attempt ${i + 1} failed:`, error);
-      if (i < retries - 1) {
-        console.log(`Retrying in ${delay / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      retries++;
+      console.error(`MongoDB connection attempt ${retries} failed:`, error.message);
+      
+      if (retries === MAX_RETRIES) {
+        console.error('Max retries reached. Could not connect to MongoDB');
+        throw error;
       }
+
+      console.log(`Retrying in ${RETRY_DELAY/1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
     }
   }
-  throw new Error('Failed to connect to MongoDB after multiple retries');
 };
 
-export const db = {
-  connect: connectWithRetry,
-  disconnect: () => mongoose.disconnect()
-};
+export { connectWithRetry as connect };
 
 // Handle connection events
 mongoose.connection.on('connected', () => {
