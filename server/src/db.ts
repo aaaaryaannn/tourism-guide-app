@@ -7,6 +7,13 @@ const connectWithRetry = async (retries = 5, delay = 5000) => {
       await mongoose.connect(config.mongodbUri, {
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
+        retryWrites: true,
+        w: 'majority',
+        serverApi: {
+          version: '1',
+          strict: true,
+          deprecationErrors: true,
+        }
       });
       console.log('Connected to MongoDB');
       return;

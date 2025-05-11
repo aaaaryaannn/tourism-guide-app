@@ -6,13 +6,21 @@ import { config } from './config/index.js';
 
 const router = express.Router();
 
+// Define types
+interface AuthenticatedRequest extends express.Request {
+  user?: {
+    userId: string;
+    email: string;
+  };
+}
+
 // Error handler middleware
 const asyncHandler = (fn: Function) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 // Authentication middleware
-const authenticate = (req: any, res: express.Response, next: express.NextFunction) => {
+const authenticate = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({ error: 'No token provided' });
@@ -20,7 +28,7 @@ const authenticate = (req: any, res: express.Response, next: express.NextFunctio
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, config.jwtSecret);
+    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string; email: string };
     req.user = decoded;
     next();
   } catch (error) {
@@ -67,7 +75,11 @@ router.post('/login', asyncHandler(async (req: express.Request, res: express.Res
   res.json({ user: userWithoutPassword, token });
 }));
 
-router.post('/guide-profiles', authenticate, asyncHandler(async (req: express.Request, res: express.Response) => {
+router.post('/guide-profiles', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
   const profileData = {
     ...req.body,
     userId: req.user.userId
@@ -89,7 +101,11 @@ router.get('/places/:id', asyncHandler(async (req: express.Request, res: express
   res.json(place);
 }));
 
-router.post('/places', authenticate, asyncHandler(async (req: express.Request, res: express.Response) => {
+router.post('/places', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const placeData = {
     ...req.body,
     createdBy: req.user.userId
@@ -98,7 +114,11 @@ router.post('/places', authenticate, asyncHandler(async (req: express.Request, r
   res.status(201).json(place);
 }));
 
-router.post('/itineraries', authenticate, asyncHandler(async (req: express.Request, res: express.Response) => {
+router.post('/itineraries', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const itineraryData = {
     ...req.body,
     userId: req.user.userId
@@ -107,7 +127,11 @@ router.post('/itineraries', authenticate, asyncHandler(async (req: express.Reque
   res.status(201).json(itinerary);
 }));
 
-router.post('/bookings', authenticate, asyncHandler(async (req: express.Request, res: express.Response) => {
+router.post('/bookings', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const bookingData = {
     ...req.body,
     userId: req.user.userId,
@@ -117,7 +141,11 @@ router.post('/bookings', authenticate, asyncHandler(async (req: express.Request,
   res.status(201).json(booking);
 }));
 
-router.get('/connections', authenticate, asyncHandler(async (req: express.Request, res: express.Response) => {
+router.get('/connections', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const connections = await storage.getConnections(req.user.userId);
   res.json(connections);
 }));
