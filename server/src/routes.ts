@@ -17,14 +17,8 @@ interface AuthenticatedRequest extends Request {
   user?: AuthUser;
 }
 
-type AsyncRequestHandler<T = {}> = (
-  req: Request & T,
-  res: Response,
-  next: NextFunction
-) => Promise<any>;
-
 // Error handler middleware
-const asyncHandler = (fn: AsyncRequestHandler): RequestHandler => 
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>): RequestHandler => 
   (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
@@ -89,7 +83,13 @@ router.post('/login', asyncHandler(async (req, res) => {
   res.json({ token });
 }));
 
-router.post('/guide-profile', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
+// Helper function to handle authenticated routes
+const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => Promise<void>): RequestHandler => 
+  asyncHandler(async (req, res, next) => {
+    await handler(req as AuthenticatedRequest, res);
+  });
+
+router.post('/guide-profile', authenticateToken, handleAuthRoute(async (req, res) => {
   const { userId } = req.user!;
   const { name, description, languages, expertise, hourlyRate } = req.body;
 
@@ -118,7 +118,7 @@ router.get('/guide-profile/:id', asyncHandler(async (req, res) => {
   res.json(profile);
 }));
 
-router.post('/places', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/places', authenticateToken, handleAuthRoute(async (req, res) => {
   const { name, description, location, images } = req.body;
   const place = await storage.createPlace({ name, description, location, images });
   res.status(201).json(place);
@@ -129,7 +129,7 @@ router.get('/places', asyncHandler(async (req, res) => {
   res.json(places);
 }));
 
-router.post('/itineraries', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/itineraries', authenticateToken, handleAuthRoute(async (req, res) => {
   const { userId } = req.user!;
   const { places, startDate, endDate } = req.body;
   
@@ -143,7 +143,7 @@ router.post('/itineraries', authenticateToken, asyncHandler(async (req: Authenti
   res.status(201).json(itinerary);
 }));
 
-router.post('/bookings', authenticateToken, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/bookings', authenticateToken, handleAuthRoute(async (req, res) => {
   const { userId } = req.user!;
   const { guideId, date, duration } = req.body;
 
