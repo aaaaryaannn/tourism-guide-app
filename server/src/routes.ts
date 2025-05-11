@@ -14,10 +14,17 @@ interface AuthenticatedRequest extends express.Request {
   };
 }
 
+type AsyncRequestHandler = (
+  req: express.Request | AuthenticatedRequest,
+  res: express.Response,
+  next: express.NextFunction
+) => Promise<any>;
+
 // Error handler middleware
-const asyncHandler = (fn: Function) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+const asyncHandler = (fn: AsyncRequestHandler) => 
+  (req: express.Request | AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 // Authentication middleware
 const authenticate = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
