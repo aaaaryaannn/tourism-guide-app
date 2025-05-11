@@ -64,12 +64,16 @@ function App() {
       
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: "include",
         body: JSON.stringify({ username, password, email }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: "Authentication failed" }));
         throw new Error(errorData.message || "Authentication failed");
       }
       
@@ -77,13 +81,15 @@ function App() {
       
       // Create user object with isGuide property
       const userData = {
-        ...data,
-        isGuide: data.userType === 'guide'
+        ...data.user,
+        token: data.token,
+        isGuide: data.user.userType === 'guide'
       };
       
       // Update state and localStorage
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", data.token);
       
       return userData;
     } catch (error: any) {
@@ -97,6 +103,7 @@ function App() {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setLocation("/");
   };
   

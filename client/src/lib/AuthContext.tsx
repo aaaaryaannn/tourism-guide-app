@@ -69,29 +69,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        throw new Error(`Login failed: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: "Authentication failed" }));
+        throw new Error(errorData.message || "Authentication failed");
       }
 
       const data = await response.json();
       
-      // Save token
+      // Create user object with isGuide property
+      const userData = {
+        ...data.user,
+        token: data.token,
+        isGuide: data.user.userType === 'guide'
+      };
+      
+      // Save token and user data
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+      setGlobalUser(userData);
       
-      // Save user data
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
-      setGlobalUser(data.user);
-      
-      return data.user;
+      return userData;
     } catch (error: any) {
       console.error("Login failed:", error.message || error);
       throw error;
