@@ -80,36 +80,70 @@ router.post('/auth/register', asyncHandler(async (req, res) => {
 }));
 
 router.post('/auth/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  // Find user
-  const user = await storage.getUserByEmail(email);
-  if (!user) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-
-  // Check password
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-
-  // Generate token
-  const token = jwt.sign({ userId: user._id, email: user.email }, config.jwtSecret);
-  
-  // Get guide profile if exists
-  const guideProfile = await storage.guideProfiles.findOne({ userId: user._id });
-  
-  // Return user data without password
-  const { password: _, ...userData } = user.toObject();
-  
-  res.json({ 
-    token,
-    user: {
-      ...userData,
-      isGuide: !!guideProfile
+  try {
+    console.log("============ LOGIN REQUEST ============");
+    console.log("Login request body:", JSON.stringify(req.body, null, 2));
+    
+    // Extract credentials from request body
+    const { username, password, email } = req.body;
+    
+    // Check if required fields are provided
+    if ((!username && !email) || !password) {
+      console.error("Missing required fields");
+      return res.status(400).json({ message: "Email/username and password are required" });
     }
-  });
+    
+    let user = null;
+    
+    // First try to find by username if provided
+    if (username) {
+      console.log("Looking up user by username:", username);
+      user = await storage.getUserByEmail(username);
+    }
+    
+    // If no user found and email provided, try by email
+    if (!user && email) {
+      console.log("Looking up user by email:", email);
+      user = await storage.getUserByEmail(email);
+    }
+    
+    // Check if user was found
+    if (!user) {
+      console.error("User not found");
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    
+    console.log("User found:", user.name);
+    
+    // Verify password using bcrypt
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      console.error("Invalid password");
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      config.jwtSecret,
+      { expiresIn: '24h' }
+    );
+    
+    // Create response without password
+    const { password: _, ...userWithoutPassword } = user;
+
+    console.log("Login successful for user:", userWithoutPassword.name);
+    console.log("============ END LOGIN REQUEST ============");
+    
+    return res.json({
+      token,
+      user: userWithoutPassword
+    });
+  } catch (error) {
+    console.error("Unhandled login error:", error);
+    console.error("============ END LOGIN REQUEST WITH ERROR ============");
+    return res.status(500).json({ message: "Server error" });
+  }
 }));
 
 // Auth routes

@@ -75,17 +75,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email,
+          username: email, // Send email as both email and username
+          password 
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Authentication failed" }));
+        const errorData = await response.json();
         throw new Error(errorData.message || "Authentication failed");
       }
 
       const data = await response.json();
       
+      if (!data.user || !data.token) {
+        throw new Error("Invalid response from server");
+      }
+
       // Create user object with isGuide property
       const userData = {
         ...data.user,
