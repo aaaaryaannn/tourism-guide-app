@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
 import { useToast } from "../hooks/use-toast";
 import { useState } from "react";
-import { API_URL } from '../lib/constants';
+import { apiRequest } from '../lib/queryClient';
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -41,24 +41,12 @@ const RegisterScreen = () => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          userType: 'tourist' // Default to tourist
-        }),
+      const response = await apiRequest("POST", "/auth/register", {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        userType: 'tourist' // Default to tourist
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
 
       const result = await response.json();
       

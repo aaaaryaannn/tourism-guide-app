@@ -34,7 +34,9 @@ export async function apiRequest(
   }
   
   // Make sure the URL starts with /api and use the correct base URL
-  const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url}`}`;
+  const apiUrl = `${API_URL}/api${url.startsWith('/') ? url : `/${url}`}`;
+  
+  console.log('Making request to:', apiUrl);
   
   const res = await fetch(apiUrl, {
     method,
@@ -66,7 +68,9 @@ export const getQueryFn: <T>(options: {
     
     // Make sure the URL starts with /api and use the correct base URL
     const url = queryKey[0] as string;
-    const apiUrl = `${API_URL}${url.startsWith('/api') ? url : `/api${url}`}`;
+    const apiUrl = `${API_URL}/api${url.startsWith('/') ? url : `/${url}`}`;
+    
+    console.log('Making query to:', apiUrl);
     
     const res = await fetch(apiUrl, {
       headers
