@@ -12,6 +12,9 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
+  optimizeDeps: {
+    include: ['leaflet', 'leaflet.locatecontrol'],
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
@@ -20,6 +23,9 @@ export default defineConfig({
       output: {
         manualChunks: undefined,
       },
+      external: [
+        'leaflet.locatecontrol/dist/L.Control.Locate.min.css'
+      ]
     },
   },
   css: {

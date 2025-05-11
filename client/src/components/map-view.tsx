@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet.locatecontrol/dist/L.Control.Locate.min.css";
 import "leaflet.locatecontrol";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent } from "./ui/sheet";
 import fixLeafletMapErrors from "../lib/leaflet-fix";
+
+// Import the CSS file dynamically
+import("leaflet.locatecontrol/dist/L.Control.Locate.min.css").catch(err => {
+  console.warn("Failed to load leaflet.locatecontrol CSS:", err);
+});
 
 // Define the types for the marker position
 export interface LatLng {
