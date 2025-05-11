@@ -11,7 +11,8 @@ const app = express();
 // CORS configuration
 const allowedOrigins = [
   'https://aaaaryaannn.github.io',    // GitHub Pages domain
-  'https://tourism-guide-app.vercel.app', // Vercel domain
+  'https://tourism-guide-app.vercel.app', // Vercel production domain
+  'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app', // Vercel preview domain
   'http://localhost:5173',            // Local development
   'http://localhost:3000'             // Local production build
 ];
@@ -25,13 +26,21 @@ const corsOptions = {
     }
     
     console.log('Request from origin:', origin);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('Origin allowed:', origin);
-      callback(null, true);
-    } else {
-      console.log('Origin not allowed:', origin);
-      callback(new Error('Not allowed by CORS'));
+    
+    // Allow all Vercel domains
+    if (origin.endsWith('.vercel.app')) {
+      console.log('Allowing Vercel domain:', origin);
+      return callback(null, true);
     }
+    
+    // Check against explicit allowed origins
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('Origin explicitly allowed:', origin);
+      return callback(null, true);
+    }
+    
+    console.log('Origin not allowed:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

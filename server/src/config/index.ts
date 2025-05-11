@@ -23,6 +23,8 @@ export const config: Config = {
   corsOrigins: [
     'https://aaaaryaannn.github.io',
     'https://tourism-guide-app.vercel.app',
+    'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+    'https://*.vercel.app',  // Allow all Vercel subdomains
     'http://localhost:5173',
     'http://localhost:3000'
   ]
