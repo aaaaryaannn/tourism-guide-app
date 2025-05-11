@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "./ui/button";
+import { Card, CardContent } from "./ui/card";
 
 const WelcomeScreen: React.FC = () => {
   const [_, setLocation] = useLocation();
