@@ -1,4 +1,4 @@
-import { User, GuideProfile, Place, Itinerary, Booking } from './models/index';
+import { User, GuideProfile, Place, Itinerary, Booking } from './models/index.js';
 import type { Document } from 'mongoose';
 
 export const storage = {
