@@ -10,20 +10,26 @@ const app = express();
 
 // CORS configuration
 const allowedOrigins = [
-  'https://aaaaryaannn.github.io',  // GitHub Pages domain
-  'http://localhost:5173',          // Local development
-  'http://localhost:3000'           // Local production build
+  'https://aaaaryaannn.github.io',    // GitHub Pages domain
+  'https://tourism-guide-app.vercel.app', // Vercel domain
+  'http://localhost:5173',            // Local development
+  'http://localhost:3000'             // Local production build
 ];
 
 const corsOptions = {
   origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
+      console.log('Request with no origin');
       return callback(null, true);
     }
+    
+    console.log('Request from origin:', origin);
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('Origin allowed:', origin);
       callback(null, true);
     } else {
+      console.log('Origin not allowed:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },

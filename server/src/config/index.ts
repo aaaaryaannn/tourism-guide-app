@@ -22,6 +22,7 @@ export const config: Config = {
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   corsOrigins: [
     'https://aaaaryaannn.github.io',
+    'https://tourism-guide-app.vercel.app',
     'http://localhost:5173',
     'http://localhost:3000'
   ]
