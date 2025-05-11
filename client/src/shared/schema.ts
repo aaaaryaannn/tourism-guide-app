@@ -18,6 +18,10 @@ export const userSchema = z.object({
 
 export type User = z.infer<typeof userSchema>;
 
+export type ExtendedUser = User & {
+  guideProfile?: GuideProfile;
+};
+
 // Guide Profile Schema
 export const guideProfileSchema = z.object({
   id: z.string(),
