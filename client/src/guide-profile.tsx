@@ -17,7 +17,7 @@ import { PhoneIcon } from "@heroicons/react/24/outline";
 const GuideProfile: React.FC = () => {
   const [_, setLocation] = useLocation();
   const { user: currentUser, isLoading: authLoading, logout } = useAuth();
-  const user = currentUser as ExtendedUser;
+  const user = currentUser as ExtendedUser | undefined;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -89,6 +89,10 @@ const GuideProfile: React.FC = () => {
     );
   }
 
+  const userDisplayName: string = user?.name || 'Anonymous';
+  const userInitial: string = typeof userDisplayName === 'string' ? userDisplayName.charAt(0) : 'A';
+  const userHandle: string = user?.username || user?.email || 'anonymous';
+
   return (
     <div className="h-full flex flex-col pb-14">
       {/* Header */}
@@ -102,14 +106,12 @@ const GuideProfile: React.FC = () => {
           {/* Profile Picture */}
           <div className="flex items-center space-x-4">
             <Avatar>
-              <AvatarImage src={user?.image || ''} alt={user?.name || 'User'} />
-              <AvatarFallback>
-                {user?.name ? user.name.charAt(0) : (user?.username ? user.username.charAt(0) : 'U')}
-              </AvatarFallback>
+              <AvatarImage src={user?.image || ''} alt={userDisplayName} />
+              <AvatarFallback>{userInitial}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold">{user?.name || 'Anonymous'}</h3>
-              <p className="text-sm text-gray-500">@{user?.username || user?.email || 'anonymous'}</p>
+              <h3 className="text-lg font-semibold">{userDisplayName}</h3>
+              <p className="text-sm text-gray-500">@{userHandle}</p>
               {user?.phone && (
                 <div className="flex items-center mt-1 text-sm text-gray-600">
                   <PhoneIcon className="w-4 h-4 mr-1" />
