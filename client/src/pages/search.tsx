@@ -1,9 +1,9 @@
-import { Layout } from "@/components/layout";
-import MapView from "@/components/map-view";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Layout } from "../components/layout";
+import MapView from "../components/map-view";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { ScrollArea } from "../components/ui/scroll-area";
 import { Search, MapPin, Store, Coffee, Hotel, Landmark } from "lucide-react";
 import { useState } from "react";
 
