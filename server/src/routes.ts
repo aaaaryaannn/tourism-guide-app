@@ -60,7 +60,7 @@ router.options('/auth/register', (req, res) => {
   const allowedOrigins = [
     'https://tourism-guide-app.vercel.app',
     'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
-    'https://tourism-guide-app-backend.onrender.com',
+    'https://tourism-guide-backend.onrender.com',
     'http://localhost:5173',
     'http://localhost:3000'
   ];
@@ -96,7 +96,7 @@ router.post('/auth/register', asyncHandler(async (req, res) => {
     const allowedOrigins = [
       'https://tourism-guide-app.vercel.app',
       'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
-      'https://tourism-guide-app-backend.onrender.com',
+      'https://tourism-guide-backend.onrender.com',
       'http://localhost:5173',
       'http://localhost:3000'
     ];
@@ -187,7 +187,7 @@ router.options('/auth/login', (req, res) => {
   const allowedOrigins = [
     'https://tourism-guide-app.vercel.app',
     'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
-    'https://tourism-guide-app-backend.onrender.com',
+    'https://tourism-guide-backend.onrender.com',
     'http://localhost:5173',
     'http://localhost:3000'
   ];
@@ -222,7 +222,7 @@ router.post('/auth/login', asyncHandler(async (req, res) => {
     const allowedOrigins = [
       'https://tourism-guide-app.vercel.app',
       'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
-      'https://tourism-guide-app-backend.onrender.com',
+      'https://tourism-guide-backend.onrender.com',
       'http://localhost:5173',
       'http://localhost:3000'
     ];

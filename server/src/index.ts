@@ -22,7 +22,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     'https://tourism-guide-app.vercel.app',
     'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
-    'https://tourism-guide-app-backend.onrender.com',
+    'https://tourism-guide-backend.onrender.com',
     'http://localhost:5173',
     'http://localhost:3000'
   ];
