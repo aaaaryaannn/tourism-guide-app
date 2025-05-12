@@ -18,8 +18,33 @@ app.use((req, res, next) => {
     headers: req.headers
   });
 
-  // Always allow all origins
-  res.header('Access-Control-Allow-Origin', '*');
+  // Define allowed origins
+  const allowedOrigins = [
+    'https://tourism-guide-app.vercel.app',
+    'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+    'https://tourism-guide-app-backend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in our allowedOrigins array or matches Vercel pattern
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app') || 
+                      origin.includes('-tourism-guide-app.vercel.app');
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // For non-matching origins
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    // For requests with no origin (like mobile apps)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
   
   // Allow credentials
   res.header('Access-Control-Allow-Credentials', 'true');

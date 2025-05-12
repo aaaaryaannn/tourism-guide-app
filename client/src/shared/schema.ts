@@ -7,6 +7,7 @@ export const userSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   password: z.string(),
+  phone: z.string().optional(),
   userType: z.enum(['user', 'guide']),
   image: z.string().optional(),
   currentLatitude: z.string().optional(),

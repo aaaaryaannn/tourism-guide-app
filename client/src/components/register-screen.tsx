@@ -13,6 +13,7 @@ import { apiRequest } from '../lib/queryClient';
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().min(10, "Phone number is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
@@ -32,6 +33,7 @@ const RegisterScreen = () => {
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       password: "",
       confirmPassword: ""
     },
@@ -44,6 +46,7 @@ const RegisterScreen = () => {
       const response = await apiRequest("POST", "/auth/register", {
         name: data.name,
         email: data.email,
+        phone: data.phone,
         password: data.password,
         userType: 'tourist' // Default to tourist
       });
@@ -114,6 +117,19 @@ const RegisterScreen = () => {
                   <FormItem>
                     <FormControl>
                       <Input type="email" placeholder="Email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input type="tel" placeholder="Phone Number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

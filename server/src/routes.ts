@@ -56,7 +56,34 @@ const handleAuthRoute = (handler: (req: AuthenticatedRequest, res: Response) => 
 
 // Handle preflight requests for registration
 router.options('/auth/register', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  // Define allowed origins
+  const allowedOrigins = [
+    'https://tourism-guide-app.vercel.app',
+    'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+    'https://tourism-guide-app-backend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in our allowedOrigins array or matches Vercel pattern
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app') || 
+                      origin.includes('-tourism-guide-app.vercel.app');
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // For non-matching origins
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    // For requests with no origin (like mobile apps)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(200).send();
@@ -65,8 +92,34 @@ router.options('/auth/register', (req, res) => {
 // Routes
 router.post('/auth/register', asyncHandler(async (req, res) => {
   try {
-    // Set CORS headers for the actual request
-    res.header('Access-Control-Allow-Origin', '*');
+    // Define allowed origins
+    const allowedOrigins = [
+      'https://tourism-guide-app.vercel.app',
+      'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+      'https://tourism-guide-app-backend.onrender.com',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+    
+    const origin = req.headers.origin;
+    
+    // Check if the origin is in our allowedOrigins array or matches Vercel pattern
+    if (origin) {
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin.endsWith('.vercel.app') || 
+                        origin.includes('-tourism-guide-app.vercel.app');
+      
+      if (isAllowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else {
+        // For non-matching origins
+        res.header('Access-Control-Allow-Origin', '*');
+      }
+    } else {
+      // For requests with no origin (like mobile apps)
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+    
     res.header('Access-Control-Allow-Methods', 'POST');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -76,7 +129,7 @@ router.post('/auth/register', asyncHandler(async (req, res) => {
       method: req.method
     });
 
-    const { email, password, name, userType } = req.body;
+  const { email, password, name, phone, userType } = req.body;
     
     // Validate required fields
     if (!email || !password || !name) {
@@ -86,26 +139,27 @@ router.post('/auth/register', asyncHandler(async (req, res) => {
         received: { email: !!email, password: !!password, name: !!name }
       });
     }
-
-    // Check if user exists
-    const existingUser = await storage.getUserByEmail(email);
-    if (existingUser) {
+  
+  // Check if user exists
+  const existingUser = await storage.getUserByEmail(email);
+  if (existingUser) {
       console.log('User already exists:', email);
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    return res.status(400).json({ message: 'User already exists' });
+  }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+  // Hash password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
-    const user = await storage.createUser({ 
-      email, 
-      password: hashedPassword,
-      name,
-      userType: userType || 'tourist'
-    });
-    
+  // Create user
+  const user = await storage.createUser({ 
+    email, 
+    password: hashedPassword,
+    name,
+    phone,
+    userType: userType || 'tourist'
+  });
+  
     console.log('User created successfully:', {
       userId: user._id,
       email: user.email,
@@ -127,8 +181,74 @@ router.post('/auth/register', asyncHandler(async (req, res) => {
   }
 }));
 
+// Handle preflight requests for login
+router.options('/auth/login', (req, res) => {
+  // Define allowed origins
+  const allowedOrigins = [
+    'https://tourism-guide-app.vercel.app',
+    'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+    'https://tourism-guide-app-backend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in our allowedOrigins array or matches Vercel pattern
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app') || 
+                      origin.includes('-tourism-guide-app.vercel.app');
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // For non-matching origins
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    // For requests with no origin (like mobile apps)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).send();
+});
+
 router.post('/auth/login', asyncHandler(async (req, res) => {
   try {
+    // Define allowed origins
+    const allowedOrigins = [
+      'https://tourism-guide-app.vercel.app',
+      'https://tourism-guide-app-git-main-aaaaryaannn-gmailcoms-projects.vercel.app',
+      'https://tourism-guide-app-backend.onrender.com',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+    
+    const origin = req.headers.origin;
+    
+    // Check if the origin is in our allowedOrigins array or matches Vercel pattern
+    if (origin) {
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin.endsWith('.vercel.app') || 
+                        origin.includes('-tourism-guide-app.vercel.app');
+      
+      if (isAllowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else {
+        // For non-matching origins
+        res.header('Access-Control-Allow-Origin', '*');
+      }
+    } else {
+      // For requests with no origin (like mobile apps)
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     console.log("============ LOGIN REQUEST ============");
     console.log("Login request body:", JSON.stringify(req.body, null, 2));
     
@@ -156,16 +276,16 @@ router.post('/auth/login', asyncHandler(async (req, res) => {
     }
     
     // Check if user was found
-    if (!user) {
+  if (!user) {
       console.error("User not found");
       return res.status(400).json({ message: "Invalid credentials" });
-    }
-    
+  }
+
     console.log("User found:", user.name);
     
     // Verify password using bcrypt
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (!validPassword) {
       console.error("Invalid password");
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -184,7 +304,7 @@ router.post('/auth/login', asyncHandler(async (req, res) => {
     console.log("============ END LOGIN REQUEST ============");
     
     return res.json({
-      token,
+    token,
       user: userWithoutPassword
     });
   } catch (error) {
