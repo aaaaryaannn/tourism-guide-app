@@ -24,11 +24,14 @@ export function getCurrentPosition(): Promise<GeolocationPosition> {
         // Get the position with high accuracy
     navigator.geolocation.getCurrentPosition(
           (position) => {
-            console.log("Location obtained successfully:", {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy
-            });
+            // Disable verbose logging in production
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Location obtained successfully:", {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+              });
+            }
             resolve(position);
           },
           (error) => {

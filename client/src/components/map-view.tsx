@@ -157,7 +157,10 @@ const MapView: React.FC<MapViewProps> = ({
             
             // Handle location found event
             mapRef.current.on('locationfound', (e: L.LocationEvent) => {
-              console.log('Location found:', e.latlng);
+              // Disable verbose logging in production
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Location found:', e.latlng);
+              }
               setUserLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
             });
             
@@ -205,7 +208,8 @@ const MapView: React.FC<MapViewProps> = ({
   // Update map center and zoom if props change
   useEffect(() => {
     if (mapRef.current) {
-      console.log("Updating map center:", center);
+      // Limit console logging to prevent flooding
+      // console.log("Updating map center:", center);
       mapRef.current.setView([center.lat, center.lng], zoom);
       
       // Add or update user location marker
