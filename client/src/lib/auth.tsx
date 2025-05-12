@@ -133,3 +133,7 @@ export function useAuth() {
   }
   return context;
 }
+
+// Import and re-export the AuthContext to maintain backward compatibility
+// This file is a bridge between auth.tsx and AuthContext.tsx to fix import issues
+export * from './AuthContext';

@@ -136,41 +136,8 @@ const MapView: React.FC<MapViewProps> = ({
           // Add zoom control to top right
           L.control.zoom({ position: "topright" }).addTo(mapRef.current);
 
-          // Add location control with error handling
-          try {
-            const locateControl = new (L.Control as any).Locate({
-              position: 'topright',
-              strings: {
-                title: "Show my location"
-              },
-              flyTo: true,
-              cacheLocation: false,
-              showCompass: true,
-              showPopup: false,
-              locateOptions: {
-                enableHighAccuracy: true
-              }
-            });
-            
-            // Add the control to the map
-            locateControl.addTo(mapRef.current);
-            
-            // Handle location found event
-            mapRef.current.on('locationfound', (e: L.LocationEvent) => {
-              // Disable verbose logging in production
-              if (process.env.NODE_ENV === 'development') {
-                console.log('Location found:', e.latlng);
-              }
-              setUserLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
-            });
-            
-            // Handle location error event
-            mapRef.current.on('locationerror', (e: L.ErrorEvent) => {
-              console.error('Location error:', e.message);
-            });
-          } catch (locateError) {
-            console.error('[MapView] Error adding locate control:', locateError);
-          }
+          // We'll use a custom location button instead of the locate control
+          // since it's causing errors in production
           
           // Handle map click events if callback provided
           if (onMapClick) {
@@ -481,6 +448,55 @@ const MapView: React.FC<MapViewProps> = ({
           <circle cx="12" cy="12" r="10" />
           <path d="M12 8v8" />
           <path d="M8 12h8" />
+        </svg>
+      </Button>
+      
+      {/* Custom location button */}
+      <Button
+        size="sm"
+        variant="secondary"
+        className="absolute right-4 bottom-16 z-[20] rounded-full shadow-md bg-white opacity-80 hover:opacity-100 h-10 w-10 p-0"
+        onClick={() => {
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const newLocation = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                };
+                setUserLocation(newLocation);
+                
+                if (mapRef.current) {
+                  mapRef.current.setView([newLocation.lat, newLocation.lng], zoom);
+                }
+              },
+              (error) => {
+                console.error("Error getting location:", error);
+                alert("Could not get your location. Please check your browser permissions.");
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          } else {
+            alert("Geolocation is not supported by your browser");
+          }
+        }}
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          className="h-5 w-5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       </Button>
       
