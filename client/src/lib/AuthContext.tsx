@@ -1,16 +1,30 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { User } from "../shared/schema";
 import { API_URL } from './constants';
 
-interface ExtendedUser extends User {
+// Define the custom AuthUser type that is independent from the zod schema
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  userType: string;
   isGuide?: boolean;
   username?: string;
+  token?: string;
+  // Optional properties to match User but not required
+  password?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  phone?: string;
+  image?: string;
+  currentLatitude?: string;
+  currentLongitude?: string;
+  lastLocationUpdate?: Date;
 }
 
 // Auth context type
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<User | null>;
+  user: AuthUser | null;
+  login: (email: string, password: string) => Promise<AuthUser | null>;
   logout: () => void;
   isLoading: boolean;
   isLoggedIn: boolean;
@@ -28,7 +42,7 @@ interface AuthProviderProps {
 const API_BASE_URL = API_URL;
 
 // Set user in global window object for compatibility with existing components
-const setGlobalUser = (user: ExtendedUser | null) => {
+const setGlobalUser = (user: AuthUser | null) => {
   if (user) {
     (window as any).auth = { user };
     console.log("Setting global auth state with user:", user);
@@ -39,7 +53,7 @@ const setGlobalUser = (user: ExtendedUser | null) => {
 };
 
 // Mock user data for demo login
-const mockUserData = {
+const mockUserData: Record<string, AuthUser> = {
   tourist: {
     id: "tourist-demo-id",
     name: "Demo Tourist",
@@ -47,6 +61,8 @@ const mockUserData = {
     userType: "tourist",
     isGuide: false,
     username: "tourist",
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   guide: {
     id: "guide-demo-id",
@@ -55,12 +71,14 @@ const mockUserData = {
     userType: "guide",
     isGuide: true,
     username: "guide",
+    createdAt: new Date(),
+    updatedAt: new Date()
   }
 };
 
 // Auth provider component
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on mount
@@ -70,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     if (storedUser && storedToken) {
       try {
-        const parsedUser = JSON.parse(storedUser);
+        const parsedUser = JSON.parse(storedUser) as AuthUser;
         setUser(parsedUser);
         setGlobalUser(parsedUser);
       } catch (error) {
@@ -84,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // Login function
-  const login = async (email: string, password: string): Promise<User | null> => {
+  const login = async (email: string, password: string): Promise<AuthUser | null> => {
     console.log("Attempting login for:", email);
     setIsLoading(true);
     
@@ -92,13 +110,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Check if this is a demo login
       if ((email === 'tourist' || email === 'guide') && password === 'password') {
         console.log("Using demo login for:", email);
-        const userData = {
+        const userData: AuthUser = {
           ...mockUserData[email as 'tourist' | 'guide'],
           token: `demo-token-${Date.now()}`
         };
         
         // Save token and user data for demo
-        localStorage.setItem("token", userData.token);
+        localStorage.setItem("token", userData.token || '');
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
         setGlobalUser(userData);
@@ -132,7 +150,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Create user object with isGuide property
-      const userData = {
+      const userData: AuthUser = {
         ...data.user,
         token: data.token,
         isGuide: data.user.userType === 'guide'
@@ -189,3 +207,4 @@ export function useAuth(): AuthContextType {
 
 // Export the AuthContext for direct import
 export { AuthContext };
+export type { AuthUser };

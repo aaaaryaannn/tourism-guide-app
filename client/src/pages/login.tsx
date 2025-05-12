@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/AuthContext";
-import type { User, ExtendedUser } from "../shared/schema";
+import type { AuthUser } from "@/lib/AuthContext";
 
 export default function LoginPage() {
   const { user, login, isLoading } = useAuth();

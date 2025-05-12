@@ -192,7 +192,7 @@ const SearchPage = () => {
           <SheetTrigger asChild>
             <Button variant="outline" className="mx-4 my-2">Show All Categories</Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-4/5">
+          <SheetContent side="right" className="h-4/5">
             <POICategories onCategorySelect={handleCategorySelect} />
           </SheetContent>
         </Sheet>
