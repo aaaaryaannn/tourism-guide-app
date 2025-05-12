@@ -15,6 +15,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [loginUsername, setLoginUsername] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
+  const [loginUserType, setLoginUserType] = useState<string>("tourist");
   const [registerUsername, setRegisterUsername] = useState<string>("");
   const [registerEmail, setRegisterEmail] = useState<string>("");
   const [registerPassword, setRegisterPassword] = useState<string>("");
@@ -50,7 +51,18 @@ export default function LoginPage() {
     setLoggingIn(true);
     
     try {
-      const loggedInUser = await login(loginUsername, loginPassword);
+      // Use loginUserType to determine the user type - for demo accounts, override username
+      // For demo accounts, we'll use the userType as the username
+      let usernameToUse = loginUsername;
+      
+      // If it's a demo login (username is 'tourist' or 'guide' with password 'password')
+      // make sure we're using the selected user type
+      if ((loginUsername === 'tourist' || loginUsername === 'guide') && 
+          loginPassword === 'password') {
+        usernameToUse = loginUserType;
+      }
+      
+      const loggedInUser = await login(usernameToUse, loginPassword);
       
       if (loggedInUser) {
         toast({
@@ -179,7 +191,8 @@ export default function LoginPage() {
                         id="login-tourist"
                         name="loginUserType"
                         value="tourist"
-                        defaultChecked
+                        checked={loginUserType === "tourist"}
+                        onChange={() => setLoginUserType("tourist")}
                         className="form-radio h-4 w-4 text-[#DC143C]"
                       />
                       <label htmlFor="login-tourist" className="ml-2">
@@ -192,6 +205,8 @@ export default function LoginPage() {
                         id="login-guide"
                         name="loginUserType"
                         value="guide"
+                        checked={loginUserType === "guide"}
+                        onChange={() => setLoginUserType("guide")}
                         className="form-radio h-4 w-4 text-[#DC143C]"
                       />
                       <label htmlFor="login-guide" className="ml-2">

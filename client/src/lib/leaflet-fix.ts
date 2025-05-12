@@ -4,64 +4,68 @@
  * This file contains helper functions to fix common Leaflet map errors
  */
 
-// Fix for "_leaflet_pos of undefined" error
-export const fixLeafletMapErrors = () => {
+/**
+ * This file contains fixes for Leaflet map initialization issues
+ * related to SSR, React, and browser compatibility
+ */
+
+// Fix for the "_leaflet_pos" issue that can happen in some browsers
+const fixLeafletMapErrors = () => {
   // Only run in browser environment
-  if (typeof window === 'undefined') return;
-  
-  // Check if Leaflet is available
-  if (!(window as any).L) return;
-  
-  const L = (window as any).L;
-  
-  // Find any Leaflet map containers
-  const mapElements = document.querySelectorAll('.leaflet-container');
-  
-  if (mapElements.length > 0) {
-    console.log('[Leaflet Fix] Found map elements:', mapElements.length);
-    
-    // For each map element, try to invalidate size
-    mapElements.forEach(element => {
-      try {
-        // Get the map instance associated with this container
-        if (element && (element as any)._leaflet_id) {
-          const mapId = (element as any)._leaflet_id;
-          const map = L.map._maps ? L.map._maps[mapId] : null;
-          
-          if (map) {
-            console.log('[Leaflet Fix] Invalidating map size for map:', mapId);
-            // Force a size recalculation
-            setTimeout(() => {
-              map.invalidateSize(true);
-            }, 100);
-          }
-        }
-      } catch (err) {
-        console.error('[Leaflet Fix] Error fixing map:', err);
-      }
+  if (typeof window !== 'undefined') {
+    // Fix for prototypes missing in older browsers
+    if (!Element.prototype.matches) {
+      // @ts-ignore - Properties might not exist in strict TypeScript
+      Element.prototype.matches =
+        // @ts-ignore
+        Element.prototype.msMatchesSelector ||
+        // @ts-ignore
+        Element.prototype.webkitMatchesSelector;
+    }
+
+    // Fix CSS transitions messing up map redraws
+    const resizeObserver = new ResizeObserver(() => {
+      // Fix for leaflet maps not displaying correctly
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 200);
     });
-  }
-  
-  // Patch Leaflet's DomUtil to handle undefined positions better
-  if (L && L.DomUtil) {
-    const originalGetPosition = L.DomUtil.getPosition;
     
-    // Replace the getPosition method with a safer version
-    L.DomUtil.getPosition = function(el: HTMLElement) {
-      if (!el) {
-        console.warn('[Leaflet Fix] getPosition called with null/undefined element');
-        return new L.Point(0, 0);
-      }
+    // Apply resize observer to document body
+    if (document.body) {
+      resizeObserver.observe(document.body);
+    }
+    
+    // Fix for missing icons when deployed
+    const fixLeafletIcon = () => {
+      // @ts-ignore
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
       
-      try {
-        return originalGetPosition.call(this, el);
-      } catch (e) {
-        console.warn('[Leaflet Fix] Error in getPosition:', e);
-        return new L.Point(0, 0); 
-      }
+      // @ts-ignore
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+      });
     };
     
-    console.log('[Leaflet Fix] Patched L.DomUtil.getPosition for safer handling');
+    // Apply Leaflet icon fix if L (Leaflet) is available
+    // @ts-ignore
+    if (typeof L !== 'undefined') {
+      fixLeafletIcon();
+    } else {
+      // Wait for L to be defined and then fix
+      const checkLeaflet = setInterval(() => {
+        // @ts-ignore
+        if (typeof L !== 'undefined') {
+          fixLeafletIcon();
+          clearInterval(checkLeaflet);
+        }
+      }, 100);
+      
+      // Stop checking after 5 seconds to prevent infinite loop
+      setTimeout(() => clearInterval(checkLeaflet), 5000);
+    }
   }
 };
 

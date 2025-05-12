@@ -175,27 +175,39 @@ const MapView: React.FC<MapViewProps> = ({
   // Update map center and zoom if props change
   useEffect(() => {
     if (mapRef.current) {
-      // Limit console logging to prevent flooding
-      // console.log("Updating map center:", center);
-      mapRef.current.setView([center.lat, center.lng], zoom);
-      
-      // Add or update user location marker
-      if (markersRef.current['userLocation']) {
-        markersRef.current['userLocation'].setLatLng([center.lat, center.lng]);
-      } else {
-        // Create a custom icon for user location
-        const userIcon = L.divIcon({
-          className: 'user-location-marker',
-          html: '<div class="user-location-dot"></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        });
+      try {
+        // Only update the view if the center has actually changed significantly
+        const currentCenter = mapRef.current.getCenter();
+        const centerChanged = 
+          Math.abs(currentCenter.lat - center.lat) > 0.001 || 
+          Math.abs(currentCenter.lng - center.lng) > 0.001;
+          
+        if (centerChanged) {
+          // Limit console logging to prevent flooding
+          console.log("Updating map center:", center);
+          mapRef.current.setView([center.lat, center.lng], zoom);
+        }
+        
+        // Add or update user location marker
+        if (markersRef.current['userLocation']) {
+          markersRef.current['userLocation'].setLatLng([center.lat, center.lng]);
+        } else {
+          // Create a custom icon for user location
+          const userIcon = L.divIcon({
+            className: 'user-location-marker',
+            html: '<div class="user-location-dot"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
 
-        // Add user location marker
-        markersRef.current['userLocation'] = L.marker([center.lat, center.lng], {
-          icon: userIcon,
-          zIndexOffset: 1000
-        }).addTo(mapRef.current);
+          // Add user location marker
+          markersRef.current['userLocation'] = L.marker([center.lat, center.lng], {
+            icon: userIcon,
+            zIndexOffset: 1000
+          }).addTo(mapRef.current);
+        }
+      } catch (error) {
+        console.error("Error updating map center:", error);
       }
     }
   }, [center, zoom]);
