@@ -7,6 +7,7 @@ interface AuthUser {
   name: string;
   email: string;
   userType: string;
+  role?: string;
   isGuide?: boolean;
   username?: string;
   token?: string;
@@ -59,6 +60,7 @@ const mockUserData: Record<string, AuthUser> = {
     name: "Demo Tourist",
     email: "tourist@example.com",
     userType: "tourist",
+    role: "tourist",
     isGuide: false,
     username: "tourist",
     createdAt: new Date(),
@@ -69,6 +71,7 @@ const mockUserData: Record<string, AuthUser> = {
     name: "Demo Guide", 
     email: "guide@example.com",
     userType: "guide",
+    role: "guide",
     isGuide: true,
     username: "guide",
     createdAt: new Date(),
@@ -153,7 +156,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData: AuthUser = {
         ...data.user,
         token: data.token,
-        isGuide: data.user.userType === 'guide'
+        isGuide: data.user.userType === 'guide',
+        role: data.user.userType
       };
       
       // Save token and user data
