@@ -13,6 +13,7 @@ import { apiRequest } from '../lib/queryClient';
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
+  username: z.string().min(1, "Username is required"),
   phone: z.string().min(10, "Phone number is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string()
@@ -27,12 +28,14 @@ const RegisterScreen = () => {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState<'tourist' | 'guide'>('tourist');
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
       email: "",
+      username: "",
       phone: "",
       password: "",
       confirmPassword: ""
@@ -46,9 +49,10 @@ const RegisterScreen = () => {
       const response = await apiRequest("POST", "/auth/register", {
         name: data.name,
         email: data.email,
+        username: data.username,
         phone: data.phone,
         password: data.password,
-        userType: 'tourist' // Default to tourist
+        userType: userType // Use the selected user type
       });
 
       const result = await response.json();
@@ -81,7 +85,7 @@ const RegisterScreen = () => {
       <h1 className="text-2xl font-bold font-sans mb-6">Maharashtra Wanderer</h1>
       <Card className="w-full max-w-sm">
         <CardContent className="p-6">
-          <h2 className="text-xl font-medium mb-4">Create your account</h2>
+          <h2 className="text-xl font-medium mb-4">Create a new account</h2>
           
           <div className="flex mb-6 border-b">
             <button 
@@ -95,6 +99,32 @@ const RegisterScreen = () => {
             </button>
           </div>
           
+          {/* User Type Selection */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <button
+              type="button"
+              className={`py-3 px-4 text-center rounded ${
+                userType === 'tourist' 
+                  ? 'bg-[#DC143C] text-white' 
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+              onClick={() => setUserType('tourist')}
+            >
+              Tourist
+            </button>
+            <button
+              type="button"
+              className={`py-3 px-4 text-center rounded ${
+                userType === 'guide' 
+                  ? 'bg-[#DC143C] text-white' 
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+              onClick={() => setUserType('guide')}
+            >
+              Guide
+            </button>
+          </div>
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -104,6 +134,19 @@ const RegisterScreen = () => {
                   <FormItem>
                     <FormControl>
                       <Input placeholder="Full Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Username" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -37,6 +37,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginUsername || !loginPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter both username and password",
+        variant: "destructive",
+        duration: 3000
+      });
+      return;
+    }
+    
     setLoggingIn(true);
     
     try {
@@ -49,10 +59,13 @@ export default function LoginPage() {
           duration: 5000
         });
         
+        console.log("Logged in as:", loggedInUser);
+        
+        // Redirect based on user type
         if (loggedInUser.userType === "guide") {
           setLocation("/guide-dashboard");
         } else {
-          setLocation("/");
+          setLocation("/dashboard");
         }
       }
       
@@ -79,6 +92,8 @@ export default function LoginPage() {
         title: "Demo Login",
         description: `Logged in as ${userType}`
       });
+      
+      console.log("Quick login as:", loggedInUser);
       
       // Redirect based on user type
       if (userType === "guide") {
@@ -153,6 +168,37 @@ export default function LoginPage() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>I am a</Label>
+                  <div className="flex space-x-4">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="login-tourist"
+                        name="loginUserType"
+                        value="tourist"
+                        defaultChecked
+                        className="form-radio h-4 w-4 text-[#DC143C]"
+                      />
+                      <label htmlFor="login-tourist" className="ml-2">
+                        Tourist
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="login-guide"
+                        name="loginUserType"
+                        value="guide"
+                        className="form-radio h-4 w-4 text-[#DC143C]"
+                      />
+                      <label htmlFor="login-guide" className="ml-2">
+                        Tour Guide
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col space-y-4">

@@ -38,6 +38,26 @@ const setGlobalUser = (user: ExtendedUser | null) => {
   }
 };
 
+// Mock user data for demo login
+const mockUserData = {
+  tourist: {
+    id: "tourist-demo-id",
+    name: "Demo Tourist",
+    email: "tourist@example.com",
+    userType: "tourist",
+    isGuide: false,
+    username: "tourist",
+  },
+  guide: {
+    id: "guide-demo-id",
+    name: "Demo Guide", 
+    email: "guide@example.com",
+    userType: "guide",
+    isGuide: true,
+    username: "guide",
+  }
+};
+
 // Auth provider component
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -69,6 +89,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     
     try {
+      // Check if this is a demo login
+      if ((email === 'tourist' || email === 'guide') && password === 'password') {
+        console.log("Using demo login for:", email);
+        const userData = {
+          ...mockUserData[email as 'tourist' | 'guide'],
+          token: `demo-token-${Date.now()}`
+        };
+        
+        // Save token and user data for demo
+        localStorage.setItem("token", userData.token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
+        setGlobalUser(userData);
+        
+        return userData;
+      }
+      
+      // Regular API login
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -148,3 +186,6 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
+
+// Export the AuthContext for direct import
+export { AuthContext };
