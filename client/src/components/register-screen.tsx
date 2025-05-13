@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
 import { useToast } from "../hooks/use-toast";
 import { useState } from "react";
-import { apiRequest } from '../lib/queryClient';
+import type { User } from "../shared/schema";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -24,7 +24,11 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const RegisterScreen = () => {
+interface RegisterScreenProps {
+  register: (name: string, email: string, password: string, userType: string) => Promise<User>;
+}
+
+const RegisterScreen: React.FC<RegisterScreenProps> = ({ register }) => {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -46,25 +50,24 @@ const RegisterScreen = () => {
     try {
       setIsLoading(true);
       
-      const response = await apiRequest("POST", "/auth/register", {
-        name: data.name,
-        email: data.email,
-        username: data.username,
-        phone: data.phone,
-        password: data.password,
-        userType: userType // Use the selected user type
-      });
-
-      const result = await response.json();
+      const user = await register(
+        data.name,
+        data.email,
+        data.password,
+        userType
+      );
       
       toast({
         title: "Registration successful",
-        description: "Welcome to Maharashtra Wanderer! Please log in to continue.",
+        description: "Welcome to Maharashtra Wanderer!",
         duration: 5000,
       });
       
-      // Redirect to login page
-      setLocation("/login");
+      if (user.isGuide) {
+        setLocation("/guide-dashboard");
+      } else {
+        setLocation("/dashboard");
+      }
       
     } catch (error) {
       console.error("Registration failed:", error);
@@ -99,7 +102,6 @@ const RegisterScreen = () => {
             </button>
           </div>
           
-          {/* User Type Selection */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <button
               type="button"
