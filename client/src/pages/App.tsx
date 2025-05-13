@@ -83,7 +83,9 @@ function App() {
       const userData = {
         ...data.user,
         token: data.token,
-        isGuide: data.user.userType === 'guide'
+        isGuide: data.user.userType === 'guide',
+        userType: data.user.userType,
+        username: data.user.username || data.user.email.split('@')[0]
       };
       
       // Update state and localStorage
@@ -135,13 +137,17 @@ function App() {
       }
       
       // If guide tries to access tourist pages or tourist tries to access guide pages, redirect
-      const guidePaths = ['/guide-dashboard', '/guide-requests', '/guide-itineraries', '/guide-connections'];
-      const touristPaths = ['/dashboard', '/search', '/transport-booking', '/hotel-booking', '/trip-planner', '/connections'];
+      const guidePaths = ['/guide-dashboard', '/guide-requests', '/guide-itineraries', '/guide-connections', '/guide-profile'];
+      const touristPaths = ['/dashboard', '/search', '/transport-booking', '/hotel-booking', '/trip-planner', '/connections', '/profile'];
       
       if (user.isGuide && touristPaths.includes(currentPath)) {
         setLocation('/guide-dashboard');
       } else if (!user.isGuide && guidePaths.includes(currentPath)) {
         setLocation('/dashboard');
+      } else if (user.userType !== 'guide' && currentPath.startsWith('/guide-')) {
+        setLocation('/dashboard');
+      } else if (user.userType === 'guide' && !currentPath.startsWith('/guide-') && !['/', '/login', '/register'].includes(currentPath)) {
+        setLocation('/guide-dashboard');
       }
     }
   }, [user, isLoading, setLocation]);
