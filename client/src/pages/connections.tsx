@@ -96,12 +96,16 @@ const Connections: React.FC = () => {
     console.debug(`[connections] Fetching connections for user ${currentUser.id} (${currentUser.userType})`);
 
     try {
-      const response = await fetch(`/api/users/${currentUser.id}/connections`, {
-        method: 'GET',
+      const response = await fetch(`${API_URL}/api/connections`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Cache-Control': 'no-cache'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          userId: currentUser.id,
+          userType: currentUser.userType 
+        })
       });
 
       if (!response.ok) {
@@ -146,7 +150,7 @@ const Connections: React.FC = () => {
     
     try {
       // Get connections directly from debug endpoint
-      const response = await fetch(`/api/debug/connections`);
+      const response = await fetch(`${API_URL}/api/debug/connections`);
       const allConnections = await response.json();
       console.log("All connections from debug endpoint:", allConnections);
 
@@ -436,27 +440,26 @@ const Connections: React.FC = () => {
     });
     
     try {
-      // Log exactly what we're sending
-      console.debug(`[connections] PATCH request to /api/connections/${connectionId}`, {
-        method: 'PATCH',
+chan      // Log exactly what we're sending
+      console.debug(`[connections] POST request to /api/connections/${connectionId}/accept`, {
+        method: 'POST',
         body: { 
-          status: 'accepted',
-          userId: currentUser?.id 
+          userId: currentUser?.id,
+          userType: currentUser?.userType
         },
         userRole: currentUser?.userType
       });
       
-      const response = await fetch(`/api/connections/${connectionId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_URL}/api/connections/${connectionId}/accept`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({ 
-          status: 'accepted',
-          userId: currentUser?.id 
+          userId: currentUser?.id,
+          userType: currentUser?.userType
         })
-      });
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -497,24 +500,24 @@ const Connections: React.FC = () => {
     
     try {
       // Log exactly what we're sending
-      console.debug(`[connections] PATCH request to /api/connections/${connectionId}`, {
-        method: 'PATCH',
+      console.debug(`[connections] POST request to /api/connections/${connectionId}/reject`, {
+        method: 'POST',
         body: { 
-          status: 'rejected',
-          userId: currentUser?.id 
+          userId: currentUser?.id,
+          userType: currentUser?.userType
         },
         userRole: currentUser?.userType
       });
       
-      const response = await fetch(`/api/connections/${connectionId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_URL}/api/connections/${connectionId}/reject`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({ 
-          status: 'rejected',
-          userId: currentUser?.id 
+          userId: currentUser?.id,
+          userType: currentUser?.userType
         })
       });
       
