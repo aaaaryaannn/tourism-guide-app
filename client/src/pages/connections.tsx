@@ -459,7 +459,7 @@ chan      // Log exactly what we're sending
         body: JSON.stringify({ 
           userId: currentUser?.id,
           userType: currentUser?.userType
-        })
+        }),
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -518,7 +518,7 @@ chan      // Log exactly what we're sending
         body: JSON.stringify({ 
           userId: currentUser?.id,
           userType: currentUser?.userType
-        })
+        }),
       });
       
       if (!response.ok) {
