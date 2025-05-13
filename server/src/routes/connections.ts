@@ -4,7 +4,7 @@ import {
   createConnection,
   updateConnectionStatus,
   deleteConnection 
-} from '../controllers/connections';
+} from '../controllers/connections.js';
 
 const router = Router();
 
