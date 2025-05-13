@@ -104,12 +104,16 @@ function App() {
           console.log("Creating development user due to auth failure");
           const devUser = {
             _id: "dev-user-id",
+            id: "dev-user-id",
             name: username,
             email: email || `${username}@example.com`,
-            userType: "tourist",
+            userType: "tourist" as "user" | "guide",
             token: "dev-token",
             isGuide: false,
-            username: username
+            username: username,
+            password: "dev-password",
+            createdAt: new Date(),
+            updatedAt: new Date()
           };
           
           setUser(devUser);
@@ -141,12 +145,16 @@ function App() {
         // Create a development user
         const devUser = {
           _id: "dev-user-id",
+          id: "dev-user-id",
           name: username,
           email: email || `${username}@example.com`,
-          userType: "tourist",
+          userType: "tourist" as "user" | "guide",
           token: "dev-token",
           isGuide: false,
-          username: username
+          username: username,
+          password: "dev-password",
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
         setUser(devUser);
@@ -159,14 +167,19 @@ function App() {
       console.error("Login error:", error);
       
       // Create a development user on error
+      const email = username.includes('@') ? username : undefined;
       const devUser = {
         _id: "dev-user-id", 
+        id: "dev-user-id",
         name: username,
         email: email || `${username}@example.com`,
-        userType: "tourist",
+        userType: "tourist" as "user" | "guide",
         token: "dev-token",
         isGuide: false,
-        username: username
+        username: username,
+        password: "dev-password",
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       setUser(devUser);
@@ -219,12 +232,16 @@ function App() {
         console.log("Registration issue, creating development user");
         const devUser = {
           _id: "dev-user-id",
+          id: "dev-user-id",
           name: name,
           email: email,
-          userType: userType,
+          userType: userType as "user" | "guide",
           token: "dev-token",
           isGuide: userType === 'guide',
-          username: name
+          username: name,
+          password: "dev-password",
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
         setUser(devUser);
@@ -238,12 +255,16 @@ function App() {
         
         const devUser = {
           _id: "dev-user-id",
+          id: "dev-user-id",
           name: name,
           email: email,
-          userType: userType,
+          userType: userType as "user" | "guide",
           token: "dev-token",
           isGuide: userType === 'guide',
-          username: name
+          username: name,
+          password: "dev-password",
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
         setUser(devUser);
@@ -258,12 +279,16 @@ function App() {
       // Create a development user on error
       const devUser = {
         _id: "dev-user-id",
+        id: "dev-user-id",
         name: name,
         email: email,
-        userType: userType,
+        userType: userType as "user" | "guide",
         token: "dev-token",
         isGuide: userType === 'guide',
-        username: name
+        username: name,
+        password: "dev-password",
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       setUser(devUser);

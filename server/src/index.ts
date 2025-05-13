@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { db } from './db.js';
-import routes from './routes.js';
-import { storage } from './storage.js';
-import { config } from './config/index.js';
+import { db } from './db';
+import routes from './routes';
+import { storage } from './storage';
+import { config } from './config/index';
 
 const app = express();
 
