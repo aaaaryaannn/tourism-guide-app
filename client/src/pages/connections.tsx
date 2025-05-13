@@ -5,6 +5,7 @@ import GuideBottomNavigation from "../components/guide/bottom-navigation";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
 import { useToast } from "../hooks/use-toast";
+import { API_URL } from "../lib/constants";
 import { 
   Tabs, 
   TabsContent, 
@@ -440,7 +441,7 @@ const Connections: React.FC = () => {
     });
     
     try {
-chan      // Log exactly what we're sending
+      // Log exactly what we're sending
       console.debug(`[connections] POST request to /api/connections/${connectionId}/accept`, {
         method: 'POST',
         body: { 
@@ -460,6 +461,7 @@ chan      // Log exactly what we're sending
           userId: currentUser?.id,
           userType: currentUser?.userType
         }),
+      });
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -1209,7 +1211,7 @@ chan      // Log exactly what we're sending
       {currentUser.userType === "guide" ? (
         <GuideBottomNavigation />
       ) : (
-      <BottomNavigation />
+        <BottomNavigation />
       )}
     </div>
   );
