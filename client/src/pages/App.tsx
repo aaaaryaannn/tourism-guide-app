@@ -72,12 +72,33 @@ function App() {
         body: JSON.stringify({ username, password, email }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Authentication failed" }));
-        throw new Error(errorData.message || "Authentication failed");
+      const data = await response.json();
+      
+      // Modified to handle new response format
+      if (!data.success && !data.user && data.testUser) {
+        // Use test user in development mode
+        console.log("Using test user:", data.testUser);
+        
+        const userData = {
+          ...data.testUser,
+          token: "dev-token",
+          isGuide: data.testUser.userType === 'guide',
+          userType: data.testUser.userType,
+          username: data.testUser.name
+        };
+        
+        // Update state and localStorage
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("token", "dev-token");
+        
+        return userData;
       }
       
-      const data = await response.json();
+      if (!data.success && !response.ok) {
+        console.error("Authentication failed:", data.message);
+        throw new Error(data.message || "Authentication failed");
+      }
       
       // Create user object with isGuide property
       const userData = {
@@ -85,7 +106,7 @@ function App() {
         token: data.token,
         isGuide: data.user.userType === 'guide',
         userType: data.user.userType,
-        username: data.user.username || data.user.email.split('@')[0]
+        username: data.user.username || data.user.name || data.user.email.split('@')[0]
       };
       
       // Update state and localStorage
@@ -95,6 +116,7 @@ function App() {
       
       return userData;
     } catch (error: any) {
+      console.error("Login error:", error);
       throw new Error(error.message || "Authentication failed");
     } finally {
       setIsLoading(false);
